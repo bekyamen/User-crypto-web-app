@@ -1,5 +1,6 @@
 'use client'
-
+import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation"
 import { useState } from 'react'
 import { HelpCircle, Settings, Bell, User } from 'lucide-react'
@@ -71,12 +72,18 @@ export default function DemoPage() {
         <div className="w-full px-4 sm:px-6 lg:px-8 py-4"> {/* Full width container */}
           <div className="flex items-center justify-between mb-4">
             {/* Logo and Brand */}
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-orange-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                <span className="text-white font-bold text-sm">₿</span>
-              </div>
-              <span className="text-white font-bold text-lg hidden sm:inline">BIT TRADING</span>
-            </div>
+             {/* Logo */}
+         <Link href="/" className="flex items-center gap-2">
+  <Image
+    src="/logo.jpg"
+    alt="Bit Trading Logo"
+    width={120}
+    height={120}
+    className="rounded-lg"
+    priority
+  />
+
+</Link>
               
             {/* Navigation Menu */}
             <nav className="flex items-center gap-4 sm:gap-8 text-sm flex-1 ml-8">

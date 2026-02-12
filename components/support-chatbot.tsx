@@ -29,48 +29,60 @@ const faqs: FAQItem[] = [
 export function SupportChatbot() {
   const [isOpen, setIsOpen] = useState(false)
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null)
-  const [tawkLoaded, setTawkLoaded] = useState(false)
+  const [tawkReady, setTawkReady] = useState(false)
 
-  // Load Tawk.to script
+  // ---------------- Load Tawk.to Script ----------------
   useEffect(() => {
-    if (typeof window !== 'undefined' && !(window as any).Tawk_API) {
-      const script = document.createElement('script')
-      script.async = true
-      script.src = 'https://embed.tawk.to/YOUR_TAWKTO_ID/default' // <-- Replace with your Tawk.to ID
-      script.charset = 'UTF-8'
-      script.setAttribute('crossorigin', '*')
-      script.onload = () => setTawkLoaded(true) // mark as loaded
-      document.body.appendChild(script)
-    } else {
-      setTawkLoaded(true)
+    if (typeof window === 'undefined') return
+
+    // If already loaded, just mark ready
+    if ((window as any).Tawk_API) {
+      (window as any).Tawk_API.onLoad = () => setTawkReady(true)
+      setTawkReady(true)
+      return
     }
+
+    // Create script
+    const script = document.createElement('script')
+    script.async = true
+    script.src = 'https://embed.tawk.to/698d77a70867ad1c391802e0/1jh89mq5d' // <-- Replace with your Tawk.to ID
+    script.charset = 'UTF-8'
+    script.setAttribute('crossorigin', '*')
+
+    script.onload = () => {
+      // Ensure Tawk_API is ready
+      if ((window as any).Tawk_API) {
+        (window as any).Tawk_API.onLoad = () => setTawkReady(true)
+      }
+    }
+
+    document.body.appendChild(script)
   }, [])
 
-  // Open Tawk.to chat safely
+  // ---------------- Open Chat ----------------
   const openChat = () => {
-    if ((window as any).Tawk_API && tawkLoaded) {
-      (window as any).Tawk_API.maximize() // opens the live chat window
+    const Tawk = (window as any).Tawk_API
+    if (Tawk && tawkReady) {
+      Tawk.showWidget()
+      Tawk.maximize()
     } else {
       alert('Chat is still loading, please wait a few seconds.')
     }
   }
 
   return (
-    <>
-      {/* Floating Chat Button */}
+    <div className="fixed bottom-6 left-6 z-50 flex flex-col items-end">
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          aria-label="Open support chat"
-          className="fixed bottom-6 left-6 z-30 w-14 h-14 rounded-full bg-gradient-to-br from-cyan-400 to-cyan-500 text-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center"
+          className="w-14 h-14 rounded-full bg-gradient-to-br from-cyan-400 to-cyan-500 text-white shadow-lg hover:shadow-xl flex items-center justify-center"
         >
           <MessageCircle className="w-6 h-6" />
         </button>
       )}
 
-      {/* Chat Panel */}
       {isOpen && (
-        <div className="fixed bottom-6 left-6 z-30 w-96 max-h-[600px] bg-white rounded-xl shadow-2xl flex flex-col overflow-hidden">
+        <div className="mt-2 w-96 max-h-[600px] bg-white rounded-xl shadow-2xl flex flex-col overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-cyan-400 to-cyan-500 text-white">
             <div className="flex items-center gap-3">
@@ -82,7 +94,6 @@ export function SupportChatbot() {
                 <p className="text-xs opacity-90">24/7 Online</p>
               </div>
             </div>
-
             <button
               onClick={() => setIsOpen(false)}
               className="p-1 rounded hover:bg-white/20 transition"
@@ -93,7 +104,6 @@ export function SupportChatbot() {
 
           {/* Content */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {/* FAQs */}
             <div className="space-y-2">
               {faqs.map((faq, index) => (
                 <div
@@ -125,22 +135,22 @@ export function SupportChatbot() {
               ))}
             </div>
 
-            {/* Start Live Chat Button */}
             <button
               onClick={openChat}
-              className="mt-4 w-full py-2 rounded bg-cyan-500 hover:bg-cyan-600 text-white text-sm font-semibold transition"
+              className={`mt-4 w-full py-2 rounded ${
+                tawkReady ? 'bg-cyan-500 hover:bg-cyan-600' : 'bg-slate-400 cursor-not-allowed'
+              } text-white text-sm font-semibold transition`}
+              disabled={!tawkReady}
             >
-              Start Live Chat
+              {tawkReady ? 'Start Live Chat' : 'Loading Chat...'}
             </button>
           </div>
 
-          {/* Footer */}
           <div className="p-3 border-t bg-slate-50 text-center">
             <p className="text-xs text-slate-500">We’re here to help you 24/7</p>
           </div>
         </div>
       )}
-    </>
+    </div>
   )
 }
-

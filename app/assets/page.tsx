@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { ArrowDown, ArrowUp, Zap, Settings, Eye, EyeOff, ChevronRight,Bell , User, HelpCircle} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
+import Image from "next/image";
+import Link from "next/link";
 
 
 export default function AssetsPage() {
@@ -18,10 +20,18 @@ export default function AssetsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-orange-500 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">₿</span>
-              </div>
-              <span className="text-white font-bold text-lg">BIT TRADING</span>
+              
+             <Link href="/" className="flex items-center gap-2">
+                          <Image
+                            src="/logo.jpg"
+                            alt="Bit Trading Logo"
+                            width={120}
+                            height={120}
+                            className="rounded-lg"
+                            priority
+                          />
+                        
+                        </Link>
             </div>
 
             <nav className="flex items-center gap-4 sm:gap-8 text-sm flex-1 ml-8">

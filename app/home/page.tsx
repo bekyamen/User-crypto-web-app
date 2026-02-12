@@ -1,5 +1,6 @@
 'use client'
-
+import Image from "next/image";
+import Link from "next/link";
 import { useState } from 'react'
 import { ChevronLeft, ChevronRight, Eye, EyeOff, ArrowDown, ArrowUp, BarChart3, MessageCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -43,12 +44,17 @@ export default function HomePage() {
       <header className="border-b border-slate-700/50 sticky top-0 z-40 bg-gradient-to-b from-slate-950 to-slate-900/80 backdrop-blur">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-orange-500 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">₿</span>
-              </div>
-              <span className="text-white font-bold text-lg">BIT TRADING</span>
-            </div>
+            <Link href="/" className="flex items-center gap-2">
+              <Image
+                src="/logo.jpg"
+                alt="Bit Trading Logo"
+                width={120}
+                height={120}
+                className="rounded-lg"
+                priority
+              />
+            
+            </Link>
 
              <nav className="flex items-center gap-4 sm:gap-8 text-sm flex-1 ml-8">
               <a href="/home" className="text-slate-400 hover:text-white transition">

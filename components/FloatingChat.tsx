@@ -30,16 +30,10 @@ export default function FloatingChat() {
       }
 
       const data = await res.json()
-
-      // Ensure always array
-      const contactsArray = Array.isArray(data.data)
-        ? data.data
-        : [data.data]
-
+      const contactsArray = Array.isArray(data.data) ? data.data : [data.data]
       setContacts(contactsArray)
     } catch (err) {
-      const msg =
-        err instanceof Error ? err.message : 'Failed to fetch contacts'
+      const msg = err instanceof Error ? err.message : 'Failed to fetch contacts'
       console.error('[FloatingChat] Error:', msg)
       setError(msg)
     } finally {
@@ -56,28 +50,20 @@ export default function FloatingChat() {
     const contact = contacts.find(
       (c) => c.platform?.toLowerCase() === platform.toLowerCase()
     )
-
     return contact?.value?.trim() || ''
   }
 
   // ---------------- Generate Links ----------------
   const whatsappLink = (number: string) => {
     if (!number) return '#'
-
     const cleanNumber = number.replace(/\D/g, '')
     return `https://wa.me/${cleanNumber}`
   }
 
   const telegramLink = (username: string) => {
     if (!username) return '#'
-
-    // Already full URL
     if (username.startsWith('http')) return username
-
-    const cleanUsername = username.startsWith('@')
-      ? username.slice(1)
-      : username
-
+    const cleanUsername = username.startsWith('@') ? username.slice(1) : username
     return `https://t.me/${cleanUsername}`
   }
 
@@ -85,7 +71,7 @@ export default function FloatingChat() {
   const whatsapp = getContactValue('whatsapp')
 
   return (
-    <div className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-3">
+    <div className="fixed bottom-6 left-6 z-[9999] flex flex-col gap-3">
       {/* Error */}
       {error && (
         <div className="bg-red-900/30 border border-red-500 text-red-200 px-4 py-3 rounded-lg text-sm flex items-center gap-2 shadow-lg">

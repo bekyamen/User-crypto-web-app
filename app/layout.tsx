@@ -1,4 +1,6 @@
 import React from "react"
+import Image from "next/image";
+import Link from "next/link";
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
@@ -9,7 +11,7 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'Bit Trading - Professional Crypto Trading Platform',
+  title: 'BitorynFX Trading - ',
   description: 'Professional trading platform for cryptocurrencies, forex, and commodities with institutional-grade tools and lightning-fast execution.',
   generator: 'v0.app',
   icons: {

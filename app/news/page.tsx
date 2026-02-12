@@ -1,5 +1,6 @@
 'use client';
-
+import Image from "next/image";
+import Link from "next/link";
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, Calendar } from 'lucide-react';
 
