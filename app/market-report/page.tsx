@@ -1,9 +1,13 @@
 'use client'
-import Image from "next/image";
-import Link from "next/link";
+
+import Image from "next/image"
+import Link from "next/link"
 import { useEffect, useState, useMemo } from 'react'
-import { Search, HelpCircle, Settings, Bell, User } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { Search, HelpCircle, Settings, User, LogOut } from 'lucide-react'
+import { useRouter, usePathname } from "next/navigation"
+
+import { signOut } from 'next-auth/react'
+import NotificationDropdown from '@/components/NotificationDropdown' // your reusable notifications
 
 type Crypto = {
   symbol: string
@@ -15,8 +19,23 @@ type Crypto = {
 }
 
 export default function MarketPage() {
+  const pathname = usePathname()
+  
+  const linkClass = (path: string) =>
+    `transition ${
+      pathname === path
+        ? "text-blue-400 font-semibold"
+        : "text-slate-400 hover:text-white"
+    }`
   const router = useRouter()
 
+  // ---------------- Sign Out ----------------
+  const handleSignOut = () => {
+    signOut({ redirect: false })
+    router.push('/login')
+  }
+
+  // ---------------- State ----------------
   const [cryptos, setCryptos] = useState<Crypto[]>([])
   const [filteredCryptos, setFilteredCryptos] = useState<Crypto[]>([])
   const [searchTerm, setSearchTerm] = useState('')
@@ -27,7 +46,6 @@ export default function MarketPage() {
   const fetchMarket = async () => {
     try {
       setError(null)
-
       const res = await fetch('/api/market/binance')
       const data = await res.json()
 
@@ -58,18 +76,15 @@ export default function MarketPage() {
   // ---------------- Search ----------------
   const handleSearch = (value: string) => {
     setSearchTerm(value)
-
     const filtered = cryptos.filter((coin) =>
       coin.symbol.toLowerCase().includes(value.toLowerCase())
     )
-
     setFilteredCryptos(filtered)
   }
 
   // ---------------- Sorting ----------------
   const sortedByChange = useMemo(() => {
     if (!Array.isArray(cryptos)) return []
-
     return [...cryptos].sort(
       (a, b) =>
         parseFloat(b.priceChangePercent) -
@@ -87,8 +102,8 @@ export default function MarketPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-6">
-                 {/* Logo */}
-                     <Link href="/" className="flex items-center gap-2">
+            {/* Logo */}
+            <Link href="/" className="flex items-center gap-2">
               <Image
                 src="/logo.jpg"
                 alt="Bit Trading Logo"
@@ -97,30 +112,55 @@ export default function MarketPage() {
                 className="rounded-lg"
                 priority
               />
-            
             </Link>
 
-            <nav className="flex items-center gap-6 text-sm">
-              <a href="/home" className="text-slate-400 hover:text-white">Home</a>
-              <a href="/demo" className="text-blue-400 font-semibold">Trade</a>
-              <a href="/market-report" className="text-slate-400 hover:text-white">Market</a>
-              <a href="/news" className="text-slate-400 hover:text-white">News</a>
-              <a href="/assets" className="text-slate-400 hover:text-white">Assets</a>
+            {/* Navigation */}
+                       {/* Navigation Menu */}
+            <nav className="flex items-center gap-4 sm:gap-8 text-sm flex-1 ml-8">
+              <Link href="/home" className={linkClass("/home")}>
+                Home
+              </Link>
+            
+              <Link href="/demo" className={linkClass("/demo")}>
+                Trade
+              </Link>
+            
+              <Link href="/market-report" className={linkClass("/market-report")}>
+                Market
+              </Link>
+            
+              <Link href="/news" className={linkClass("/news")}>
+                News
+              </Link>
+            
+              <Link href="/assets" className={linkClass("/assets")}>
+                Assets
+              </Link>
             </nav>
           </div>
 
+          {/* Header Buttons */}
           <div className="flex items-center gap-4">
-            <HelpCircle size={20} className="text-slate-400 hover:text-white cursor-pointer" />
+           
             <Settings
               size={20}
               className="text-slate-400 hover:text-white cursor-pointer"
               onClick={() => router.push('/settings')}
             />
-            <Bell size={20} className="text-slate-400 hover:text-white cursor-pointer" />
-            <User size={20} className="text-slate-400 hover:text-white cursor-pointer" />
+            {/* Notification Dropdown */}
+            <NotificationDropdown />
+            {/* Sign Out */}
+            <button
+              onClick={handleSignOut}
+              className="p-2 hover:bg-slate-800/50 rounded-lg transition text-slate-400 hover:text-white"
+            >
+              <LogOut size={20} />
+            </button>
+           
           </div>
         </div>
 
+        {/* Page Title */}
         <h1 className="text-3xl font-bold mb-6">Live Market (Binance)</h1>
 
         {/* Search */}
@@ -135,17 +175,9 @@ export default function MarketPage() {
           />
         </div>
 
-        {/* Loading */}
-        {loading && (
-          <p className="text-slate-400 mb-6">Loading market data...</p>
-        )}
-
-        {/* Error */}
-        {error && (
-          <p className="text-red-400 mb-6">{error}</p>
-        )}
-
-        {/* Table */}
+        {/* Loading / Error / Table */}
+        {loading && <p className="text-slate-400 mb-6">Loading market data...</p>}
+        {error && <p className="text-red-400 mb-6">{error}</p>}
         {!loading && !error && (
           <div className="overflow-x-auto mb-12">
             <table className="w-full">
@@ -166,27 +198,15 @@ export default function MarketPage() {
                     className="border-b border-slate-800 hover:bg-slate-900 transition"
                   >
                     <td className="py-3">{coin.symbol}</td>
-                    <td className="py-3">
-                      ${parseFloat(coin.lastPrice).toFixed(4)}
-                    </td>
-                    <td
-                      className={`py-3 ${
-                        parseFloat(coin.priceChangePercent) >= 0
-                          ? 'text-green-400'
-                          : 'text-red-400'
-                      }`}
-                    >
+                    <td className="py-3">${parseFloat(coin.lastPrice).toFixed(4)}</td>
+                    <td className={`py-3 ${
+                      parseFloat(coin.priceChangePercent) >= 0 ? 'text-green-400' : 'text-red-400'
+                    }`}>
                       {parseFloat(coin.priceChangePercent).toFixed(2)}%
                     </td>
-                    <td className="py-3">
-                      ${parseFloat(coin.highPrice).toFixed(4)}
-                    </td>
-                    <td className="py-3">
-                      ${parseFloat(coin.lowPrice).toFixed(4)}
-                    </td>
-                    <td className="py-3">
-                      {parseFloat(coin.volume).toLocaleString()}
-                    </td>
+                    <td className="py-3">${parseFloat(coin.highPrice).toFixed(4)}</td>
+                    <td className="py-3">${parseFloat(coin.lowPrice).toFixed(4)}</td>
+                    <td className="py-3">{parseFloat(coin.volume).toLocaleString()}</td>
                   </tr>
                 ))}
               </tbody>
@@ -200,9 +220,7 @@ export default function MarketPage() {
           {topGainers.map((coin) => (
             <div key={coin.symbol} className="flex justify-between py-2">
               <span>{coin.symbol}</span>
-              <span className="text-green-400">
-                {parseFloat(coin.priceChangePercent).toFixed(2)}%
-              </span>
+              <span className="text-green-400">{parseFloat(coin.priceChangePercent).toFixed(2)}%</span>
             </div>
           ))}
         </div>
@@ -213,9 +231,7 @@ export default function MarketPage() {
           {topLosers.map((coin) => (
             <div key={coin.symbol} className="flex justify-between py-2">
               <span>{coin.symbol}</span>
-              <span className="text-red-400">
-                {parseFloat(coin.priceChangePercent).toFixed(2)}%
-              </span>
+              <span className="text-red-400">{parseFloat(coin.priceChangePercent).toFixed(2)}%</span>
             </div>
           ))}
         </div>

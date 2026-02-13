@@ -12,6 +12,7 @@ import { CryptoTable } from '@/components/crypto-table'
 import { TopGainersSection } from '@/components/top-gainers'
 import { NewListingsSection } from '@/components/new-listings'
 import   FloatingChat from '@/components/FloatingChat'
+
 export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
@@ -61,3 +62,4 @@ export default function Home() {
     </div>
   )
 }
+

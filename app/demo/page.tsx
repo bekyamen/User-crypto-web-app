@@ -1,7 +1,8 @@
 'use client'
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
+
 import { useState } from 'react'
 import { HelpCircle, Settings, Bell, User } from 'lucide-react'
 
@@ -21,6 +22,15 @@ export interface TradeModalData {
 }
 
 export default function DemoPage() {
+  const pathname = usePathname()
+
+const linkClass = (path: string) =>
+  `transition ${
+    pathname === path
+      ? "text-blue-400 font-semibold"
+      : "text-slate-400 hover:text-white"
+  }`
+
   const router = useRouter()
   const { user, isLoading } = useAuth()
   const [activeTab, setActiveTab] = useState<'crypto' | 'forex' | 'gold'>('crypto')
@@ -83,16 +93,32 @@ export default function DemoPage() {
     priority
   />
 
-</Link>
+     </Link>
               
             {/* Navigation Menu */}
-            <nav className="flex items-center gap-4 sm:gap-8 text-sm flex-1 ml-8">
-              <a href="/home" className="text-slate-400 hover:text-white transition">Home</a>
-              <a href="/demo" className="text-blue-400 font-semibold transition">Trade</a>
-              <a href="/market-report" className="text-slate-400 hover:text-white transition">Market</a>
-              <a href="/news" className="text-slate-400 hover:text-white transition">News</a>
-              <a href="/assets" className="text-slate-400 hover:text-white transition">Assets</a>
-            </nav>
+            {/* Navigation Menu */}
+<nav className="flex items-center gap-4 sm:gap-8 text-sm flex-1 ml-8">
+  <Link href="/home" className={linkClass("/home")}>
+    Home
+  </Link>
+
+  <Link href="/demo" className={linkClass("/demo")}>
+    Trade
+  </Link>
+
+  <Link href="/market-report" className={linkClass("/market-report")}>
+    Market
+  </Link>
+
+  <Link href="/news" className={linkClass("/news")}>
+    News
+  </Link>
+
+  <Link href="/assets" className={linkClass("/assets")}>
+    Assets
+  </Link>
+</nav>
+
  
             {/* Right Icons */}
             <div className="flex items-center gap-4">

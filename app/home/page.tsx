@@ -1,46 +1,79 @@
 'use client'
-import { useSession } from 'next-auth/react'
 
-import Image from "next/image";
-import Link from "next/link";
-import { useState } from 'react'
-import { ChevronLeft, ChevronRight, Eye, EyeOff, ArrowDown, ArrowUp, BarChart3, MessageCircle } from 'lucide-react'
+import { useSession, signOut } from 'next-auth/react'
+import Image from 'next/image'
+import Link from 'next/link'
+import { useState, useEffect, useRef } from 'react'
+import { useRouter, usePathname } from "next/navigation"
+
+import {
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  EyeOff,
+  ArrowDown,
+  ArrowUp,
+  Zap,
+  MessageCircle,
+  Settings,
+  Bell,
+  LogOut,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { HelpCircle, Settings, Bell, User } from 'lucide-react'
-import { useRouter } from "next/navigation"
 
 const cryptoData = [
-  { symbol: 'BTC', name: 'Bitcoin', price: '45079.67', change: '+2.45%', changeAmount: '+2797.37 USD', icon: '₿', color: 'bg-orange-500' },
-  { symbol: 'ETH', name: 'Ethereum', price: '2729.56', change: '-3.21%', changeAmount: '+727.26 USD', icon: 'Ξ', color: 'bg-purple-500' },
-  { symbol: 'BNB', name: 'BNB', price: '303.68', change: '+4.87%', changeAmount: '+702.168 USD', icon: 'B', color: 'bg-yellow-500' },
-  { symbol: 'ADA', name: 'Cardano', price: '0.4243', change: '-0.51%', changeAmount: '+0.5243 USD', icon: 'A', color: 'bg-blue-600' },
-  { symbol: 'SOL', name: 'Solana', price: '97.34', change: '+3.12%', changeAmount: '+917.26 USD', icon: 'S', color: 'bg-purple-600' },
-  { symbol: 'DOT', name: 'Polkadot', price: '7.46', change: '-1.23%', changeAmount: '+0.7435 USD', icon: 'D', color: 'bg-pink-500' },
-  { symbol: 'LINK', name: 'Chainlink', price: '14.43', change: '+2.11%', changeAmount: '+11.6 USD', icon: 'L', color: 'bg-blue-400' },
-  { symbol: 'AVAX', name: 'Avalanche', price: '33.34', change: '-0.45%', changeAmount: '+43.34 USD', icon: 'A', color: 'bg-red-500' }
+  { symbol: 'BTC', name: 'Bitcoin', price: '45079.67', change: '+2.45%', icon: '₿', color: 'bg-orange-500' },
+  { symbol: 'ETH', name: 'Ethereum', price: '2729.56', change: '-3.21%', icon: 'Ξ', color: 'bg-purple-500' },
+  { symbol: 'BNB', name: 'BNB', price: '303.68', change: '+4.87%', icon: 'B', color: 'bg-yellow-500' },
+  { symbol: 'ADA', name: 'Cardano', price: '0.4243', change: '-0.51%', icon: 'A', color: 'bg-blue-600' },
+  { symbol: 'SOL', name: 'Solana', price: '97.34', change: '+3.12%', icon: 'S', color: 'bg-purple-600' },
+  { symbol: 'DOT', name: 'Polkadot', price: '7.46', change: '-1.23%', icon: 'D', color: 'bg-pink-500' },
+  { symbol: 'LINK', name: 'Chainlink', price: '14.43', change: '+2.11%', icon: 'L', color: 'bg-blue-400' },
+  { symbol: 'AVAX', name: 'Avalanche', price: '33.34', change: '-0.45%', icon: 'A', color: 'bg-red-500' },
 ]
 
 export default function HomePage() {
-  const { data: session } = useSession()
+  const pathname = usePathname()
+  
+  const linkClass = (path: string) =>
+    `transition ${
+      pathname === path
+        ? "text-blue-400 font-semibold"
+        : "text-slate-400 hover:text-white"
+    }`
 
-   const router = useRouter()
+
+  const { data: session } = useSession()
+  const router = useRouter()
+
   const [showBalance, setShowBalance] = useState(false)
   const [carouselIndex, setCarouselIndex] = useState(0)
+  const [showNotifications, setShowNotifications] = useState(false)
+  const notificationRef = useRef<HTMLDivElement>(null)
 
   const carouselSlides = [
-    {
-      title: 'Secure & Fast Transactions',
-      description: 'Deposit and withdraw funds instantly with bank-level security'
-    },
-    {
-      title: '24/7 Market Access',
-      description: 'Trade cryptocurrencies anytime with real-time market data'
-    },
-    {
-      title: 'Advanced Trading Tools',
-      description: 'Professional charts and analytics for informed decisions'
-    }
+    { title: 'Secure & Fast Transactions', description: 'Deposit and withdraw funds instantly with bank-level security' },
+    { title: '24/7 Market Access', description: 'Trade cryptocurrencies anytime with real-time market data' },
+    { title: 'Advanced Trading Tools', description: 'Professional charts and analytics for informed decisions' },
   ]
+
+  const notifications: { id: number; message: string }[] = [] // empty notifications
+
+  const handleSignOut = () => {
+    signOut({ redirect: false })
+    router.push('/login')
+  }
+
+  // Close notifications panel when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+        setShowNotifications(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
@@ -48,63 +81,90 @@ export default function HomePage() {
       <header className="border-b border-slate-700/50 sticky top-0 z-40 bg-gradient-to-b from-slate-950 to-slate-900/80 backdrop-blur">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
+            {/* Logo */}
             <Link href="/" className="flex items-center gap-2">
-              <Image
-                src="/logo.jpg"
-                alt="Bit Trading Logo"
-                width={120}
-                height={120}
-                className="rounded-lg"
-                priority
-              />
-            
+              <Image src="/logo.jpg" alt="Bit Trading Logo" width={120} height={120} className="rounded-lg" priority />
             </Link>
 
-             <nav className="flex items-center gap-4 sm:gap-8 text-sm flex-1 ml-8">
-              <a href="/home" className="text-slate-400 hover:text-white transition">
-                Home
-              </a>
-              <a href="/demo" className="text-blue-400 font-semibold transition">
-                Trade
-              </a>
-              <a href="/market-report" className="text-slate-400 hover:text-white transition">
-                Market
-              </a>
-              <a href="/news" className="text-slate-400 hover:text-white transition">
-                News
-              </a>
-              <a href="/assets" className="text-slate-400 hover:text-white transition">
-                Assets
-              </a>
-            </nav>
+            {/* Navigation */}
+           <nav className="flex items-center gap-4 sm:gap-8 text-sm flex-1 ml-8">
+                         <Link href="/home" className={linkClass("/home")}>
+                           Home
+                         </Link>
+                       
+                         <Link href="/demo" className={linkClass("/demo")}>
+                           Trade
+                         </Link>
+                       
+                         <Link href="/market-report" className={linkClass("/market-report")}>
+                           Market
+                         </Link>
+                       
+                         <Link href="/news" className={linkClass("/news")}>
+                           News
+                         </Link>
+                       
+                         <Link href="/assets" className={linkClass("/assets")}>
+                           Assets
+                         </Link>
+              </nav>
 
-                       <div className="flex items-center gap-4">
-                          <button className="p-2 hover:bg-slate-800/50 rounded-lg transition text-slate-400 hover:text-white">
-                            <HelpCircle size={20} />
-                          </button>
-                          <button
-                            onClick={() => router.push("/settings")}
-                            className="p-2 hover:bg-slate-800/50 rounded-lg transition text-slate-400 hover:text-white"
-                          >
-                            <Settings size={20} />
-                          </button>
-                          <button className="p-2 hover:bg-slate-800/50 rounded-lg transition text-slate-400 hover:text-white relative">
-                            <Bell size={20} />
-                            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-                          </button>
-                          <button className="p-2 hover:bg-slate-800/50 rounded-lg transition text-slate-400 hover:text-white">
-                            <User size={20} />
-                          </button>
-                        </div>
+            {/* Header buttons */}
+            <div className="flex items-center gap-4">
+              {/* Settings */}
+              <button
+                onClick={() => router.push('/settings')}
+                className="p-2 hover:bg-slate-800/50 rounded-lg transition text-slate-400 hover:text-white"
+              >
+                <Settings size={20} />
+              </button>
+
+              {/* Notifications */}
+              <div className="relative" ref={notificationRef}>
+                <button
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  className="p-2 hover:bg-slate-800/50 rounded-lg transition text-slate-400 hover:text-white relative"
+                >
+                  <Bell size={20} />
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
+                </button>
+
+                {showNotifications && (
+                  <div className="absolute right-0 mt-2 w-64 bg-slate-800 border border-slate-700 rounded-lg shadow-lg z-50">
+                    <div className="p-4 text-white font-semibold border-b border-slate-700">Notifications</div>
+                    <ul className="max-h-64 overflow-y-auto">
+                      {notifications.length > 0 ? (
+                        notifications.map((n) => (
+                          <li key={n.id} className="px-4 py-2 border-b border-slate-700 hover:bg-slate-700/50 cursor-pointer">
+                            {n.message}
+                          </li>
+                        ))
+                      ) : (
+                        <li className="px-4 py-4 text-center text-slate-400">No notifications</li>
+                      )}
+                    </ul>
+                  </div>
+                )}
+              </div>
+
+              {/* Sign Out */}
+              <button
+                onClick={handleSignOut}
+                className="p-2 hover:bg-slate-800/50 rounded-lg transition text-slate-400 hover:text-white"
+              >
+                <LogOut size={20} />
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
+      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Carousel Section */}
+        {/* Carousel */}
         <div className="relative mb-12">
           <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-lg border border-slate-700/50 p-8 min-h-[280px] flex flex-col justify-center items-center relative overflow-hidden">
-            {/* Carousel content */}
+            {/* Prev */}
             <button
               onClick={() => setCarouselIndex((prev) => (prev - 1 + carouselSlides.length) % carouselSlides.length)}
               className="absolute left-4 top-1/2 -translate-y-1/2 p-2 hover:bg-slate-700/50 rounded-lg transition"
@@ -112,11 +172,13 @@ export default function HomePage() {
               <ChevronLeft className="w-6 h-6 text-white" />
             </button>
 
+            {/* Slide content */}
             <div className="text-center">
               <h2 className="text-3xl font-bold text-blue-400 mb-2">{carouselSlides[carouselIndex].title}</h2>
               <p className="text-slate-400">{carouselSlides[carouselIndex].description}</p>
             </div>
 
+            {/* Next */}
             <button
               onClick={() => setCarouselIndex((prev) => (prev + 1) % carouselSlides.length)}
               className="absolute right-4 top-1/2 -translate-y-1/2 p-2 hover:bg-slate-700/50 rounded-lg transition"
@@ -124,7 +186,7 @@ export default function HomePage() {
               <ChevronRight className="w-6 h-6 text-white" />
             </button>
 
-            {/* Carousel indicators */}
+            {/* Indicators */}
             <div className="absolute bottom-4 flex gap-2">
               {carouselSlides.map((_, index) => (
                 <button
@@ -147,55 +209,45 @@ export default function HomePage() {
                 <div>
                   <p className="text-slate-400 text-sm mb-2">AVAILABLE BALANCE</p>
                   <div className="flex items-baseline gap-2">
-                    <h3 className="text-4xl font-bold text-white">
-                      {showBalance ? '0.00' : '••••'}
-                    </h3>
+                    <h3 className="text-4xl font-bold text-white">{showBalance ? '0.00' : '••••'}</h3>
                     <span className="text-slate-400">USD</span>
                   </div>
-                  <p className="text-blue-400 text-sm mt-2">Welcome back, {session?.user?.email ?? 'User'}
-</p>
+                  <p className="text-blue-400 text-sm mt-2">Welcome back, {session?.user?.email ?? 'User'}</p>
                 </div>
-                <button
-                  onClick={() => setShowBalance(!showBalance)}
-                  className="p-2 hover:bg-slate-700/50 rounded-lg transition"
-                >
-                  {showBalance ? (
-                    <EyeOff className="w-5 h-5 text-slate-400" />
-                  ) : (
-                    <Eye className="w-5 h-5 text-slate-400" />
-                  )}
+                <button onClick={() => setShowBalance(!showBalance)} className="p-2 hover:bg-slate-700/50 rounded-lg transition">
+                  {showBalance ? <EyeOff className="w-5 h-5 text-slate-400" /> : <Eye className="w-5 h-5 text-slate-400" />}
                 </button>
               </div>
 
               {/* Action Buttons */}
               <div className="grid grid-cols-4 gap-4">
-                <button className="flex flex-col items-center gap-3 p-4 rounded-lg hover:bg-slate-800/50 transition group">
-                  <div className="w-12 h-12 rounded-full border-2 border-slate-600 flex items-center justify-center group-hover:border-blue-400 transition">
-                    <ArrowDown className="w-5 h-5 text-slate-400 group-hover:text-blue-400" />
+                <Link href="/assets/deposit" className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-slate-800/50 transition group">
+                  <div className="w-10 h-10 rounded-full border-2 border-slate-600 flex items-center justify-center group-hover:border-blue-400 transition">
+                    <ArrowDown className="w-4 h-4 text-slate-400 group-hover:text-blue-400" />
                   </div>
-                  <span className="text-slate-400 text-xs">Deposit</span>
-                </button>
+                  <span className="text-slate-400 text-xs text-center">Deposit</span>
+                </Link>
 
-                <button className="flex flex-col items-center gap-3 p-4 rounded-lg hover:bg-slate-800/50 transition group">
-                  <div className="w-12 h-12 rounded-full border-2 border-slate-600 flex items-center justify-center group-hover:border-blue-400 transition">
-                    <BarChart3 className="w-5 h-5 text-slate-400 group-hover:text-blue-400" />
+                <Link href="/assets/transfer" className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-slate-800/50 transition group">
+                  <div className="w-10 h-10 rounded-full border-2 border-slate-600 flex items-center justify-center group-hover:border-blue-400 transition">
+                    <Zap className="w-4 h-4 text-slate-400 group-hover:text-blue-400" />
                   </div>
-                  <span className="text-slate-400 text-xs">Trade</span>
-                </button>
+                  <span className="text-slate-400 text-xs text-center">Transfer</span>
+                </Link>
 
-                <button className="flex flex-col items-center gap-3 p-4 rounded-lg hover:bg-slate-800/50 transition group">
-                  <div className="w-12 h-12 rounded-full border-2 border-slate-600 flex items-center justify-center group-hover:border-blue-400 transition">
-                    <ArrowUp className="w-5 h-5 text-slate-400 group-hover:text-blue-400" />
+                <Link href="/assets/withdraw" className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-slate-800/50 transition group">
+                  <div className="w-10 h-10 rounded-full border-2 border-slate-600 flex items-center justify-center group-hover:border-blue-400 transition">
+                    <ArrowUp className="w-4 h-4 text-slate-400 group-hover:text-blue-400" />
                   </div>
-                  <span className="text-slate-400 text-xs">Withdraw</span>
-                </button>
+                  <span className="text-slate-400 text-xs text-center">Withdraw</span>
+                </Link>
 
-                <button className="flex flex-col items-center gap-3 p-4 rounded-lg hover:bg-slate-800/50 transition group">
+                <Link href="/demo" className="flex flex-col items-center gap-3 p-4 rounded-lg hover:bg-slate-800/50 transition group">
                   <div className="w-12 h-12 rounded-full border-2 border-slate-600 flex items-center justify-center group-hover:border-blue-400 transition">
                     <MessageCircle className="w-5 h-5 text-slate-400 group-hover:text-blue-400" />
                   </div>
                   <span className="text-slate-400 text-xs">Demo</span>
-                </button>
+                </Link>
               </div>
             </div>
           </div>
@@ -216,7 +268,6 @@ export default function HomePage() {
             <p className="text-slate-400">Real-time cryptocurrency prices and trends</p>
           </div>
 
-          {/* Crypto Table */}
           <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg border border-slate-700/50 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
