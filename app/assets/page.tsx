@@ -1,4 +1,5 @@
 'use client'
+import { useSession } from "next-auth/react"
 
 import { useState } from 'react'
 import { ArrowDown, ArrowUp, Zap, Settings, Eye, EyeOff, ChevronRight,Bell , User, HelpCircle} from 'lucide-react'
@@ -9,6 +10,14 @@ import Link from "next/link";
 
 
 export default function AssetsPage() {
+  const { data: session } = useSession()
+
+const fullName = session?.user?.name || ""
+const firstName = fullName.split(" ")[0] || "User"
+const email = session?.user?.email || ""
+const avatarLetter = firstName.charAt(0).toUpperCase()
+
+
   const router = useRouter() // ✅ ADD THIS
   const [showBalance, setShowBalance] = useState(false)
   const [activeModal, setActiveModal] = useState<string | null>(null)
@@ -85,12 +94,18 @@ export default function AssetsPage() {
         <div className="mb-8">
           <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg border border-slate-700/50 p-6 flex items-center gap-4">
             <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center flex-shrink-0">
-              <span className="text-white font-bold text-2xl">B</span>
-            </div>
+  <span className="text-white font-bold text-2xl">
+    {avatarLetter}
+  </span>
+</div>
             <div className="flex-1">
-              <h2 className="text-white font-bold text-lg">bereket tere</h2>
-              <p className="text-slate-400 text-sm">bereket1terefe@gmail.com</p>
-            </div>
+  <h2 className="text-white font-bold text-lg">
+    {firstName}
+  </h2>
+  <p className="text-slate-400 text-sm">
+    {email}
+  </p>
+</div>
             <button className="p-2 hover:bg-slate-700/50 rounded-lg transition">
               <Settings className="w-5 h-5 text-slate-400" />
             </button>

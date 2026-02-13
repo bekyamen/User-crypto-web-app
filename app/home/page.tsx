@@ -1,4 +1,6 @@
 'use client'
+import { useSession } from 'next-auth/react'
+
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from 'react'
@@ -19,6 +21,8 @@ const cryptoData = [
 ]
 
 export default function HomePage() {
+  const { data: session } = useSession()
+
    const router = useRouter()
   const [showBalance, setShowBalance] = useState(false)
   const [carouselIndex, setCarouselIndex] = useState(0)
@@ -148,7 +152,8 @@ export default function HomePage() {
                     </h3>
                     <span className="text-slate-400">USD</span>
                   </div>
-                  <p className="text-blue-400 text-sm mt-2">Welcome back, bereket1terefe@gmail.com</p>
+                  <p className="text-blue-400 text-sm mt-2">Welcome back, {session?.user?.email ?? 'User'}
+</p>
                 </div>
                 <button
                   onClick={() => setShowBalance(!showBalance)}

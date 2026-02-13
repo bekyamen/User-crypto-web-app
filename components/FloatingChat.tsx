@@ -12,6 +12,7 @@ type Contact = {
   value: string
 }
 
+
 export default function FloatingChat() {
   const [contacts, setContacts] = useState<Contact[]>([])
   const [loading, setLoading] = useState(true)

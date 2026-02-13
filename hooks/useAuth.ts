@@ -25,6 +25,7 @@ export interface RegisterData {
 export function useAuth() {
   const router = useRouter()
   const { data: session, status } = useSession()
+
   const [user, setUser] = useState<User | null>(null)
   const [token, setToken] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(status === 'loading')
@@ -34,11 +35,12 @@ export function useAuth() {
   useEffect(() => {
     if (session?.user) {
       setUser({
-        id: session.user.id,
-        name: session.user.name,
-        email: session.user.email,
-        role: session.user.role as 'USER' | 'ADMIN',
-      })
+  id: session.user.id as string,
+  name: session.user.name ?? '',
+  email: session.user.email ?? '',
+  role: (session.user.role as 'USER' | 'ADMIN') ?? 'USER',
+})
+
       setToken(session.accessToken || null)
     } else {
       setUser(null)
@@ -47,31 +49,22 @@ export function useAuth() {
     setIsLoading(false)
   }, [session])
 
-  // Register + auto-login via NextAuth
+  // ✅ Register → Redirect to login
   const register = async (data: RegisterData) => {
     setIsLoading(true)
     setError(null)
 
     try {
-      const response = await authApi.register(data)
-      const { user, token } = response.data
+      await authApi.register(data)
 
-      // Auto-login
-      const loginRes = await signIn('credentials', {
-        email: data.email,
-        password: data.password,
-        redirect: false,
-      })
-
-      if (!loginRes?.error) {
-        router.push('/demo')
-        return { success: true }
-      } else {
-        setError('Registration succeeded but login failed, please login manually')
-        return { success: false, error: 'Login failed after registration' }
-      }
+      router.push('/login') // Redirect to login page
+      return { success: true }
     } catch (err: any) {
-      const message = err?.response?.data?.message || err.message || 'Registration failed'
+      const message =
+        err?.response?.data?.message ||
+        err.message ||
+        'Registration failed'
+
       setError(message)
       return { success: false, error: message }
     } finally {
@@ -79,6 +72,7 @@ export function useAuth() {
     }
   }
 
+  // ✅ Login
   const login = async (email: string, password: string) => {
     setIsLoading(true)
     setError(null)
@@ -90,8 +84,9 @@ export function useAuth() {
     })
 
     setIsLoading(false)
+
     if (!res?.error) {
-      router.push('/demo')
+      router.push('/demo') // after login go to demo
       return { success: true }
     } else {
       setError('Invalid email or password')
@@ -99,6 +94,7 @@ export function useAuth() {
     }
   }
 
+  // ✅ Logout
   const logout = () => {
     signOut({ redirect: true, callbackUrl: '/login' })
   }
