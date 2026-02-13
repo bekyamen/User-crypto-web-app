@@ -4,13 +4,11 @@ import { useEffect, useRef, useState } from 'react';
 import {
   createChart,
   LineSeries,
-  HistogramSeries,
   IChartApi,
   UTCTimestamp,
 } from 'lightweight-charts';
-import { BINANCE_WS } from '@/lib/binance';
 
-type TF = '1s' | '1m' | '15m' | '1h' | '4h' | '1d';
+type TF = '1min' | '5min' | '15min' | '1h' | '4h' | '1d';
 
 type Candle = {
   time: UTCTimestamp;
@@ -22,28 +20,20 @@ type Candle = {
 };
 
 interface ForexChartProps {
-  pair: string;
-  price: number;
-  change24h: number;
-  high24h?: number;
-  low24h?: number;
+  pair: string; // Example: "EUR/USD"
+  tf?: TF;
 }
 
-export function ForexChart({ pair, price, change24h, high24h, low24h }: ForexChartProps) {
+const TWELVE_DATA_WS = 'wss://ws.twelvedata.com/v1/quotes/forex';
+const API_KEY = 'YOUR_TWELVE_DATA_API_KEY'; // replace with your Twelve Data key
+
+export function ForexChart({ pair, tf = '1min' }: ForexChartProps) {
   const chartEl = useRef<HTMLDivElement>(null);
   const chart = useRef<IChartApi | null>(null);
-  const ws = useRef<WebSocket | null>(null);
-
   const candleSeries = useRef<any>(null);
-  const ma7 = useRef<any>(null);
-  const ma14 = useRef<any>(null);
-  const ma28 = useRef<any>(null);
-
-  const candles = useRef<Candle[]>([]);
-  const [tf, setTf] = useState<TF>('15m');
-
-  const isPositive = change24h >= 0;
-  const symbol = pair.replace('/', '');
+  const [candles, setCandles] = useState<Candle[]>([]);
+  const [price, setPrice] = useState<number>(0);
+  const ws = useRef<WebSocket | null>(null);
 
   // =========================
   // Chart Initialization
@@ -58,16 +48,10 @@ export function ForexChart({ pair, price, change24h, high24h, low24h }: ForexCha
       timeScale: { borderColor: 'rgba(255,255,255,0.1)', timeVisible: true, secondsVisible: true },
     });
 
-    // Candle / Line series
     candleSeries.current = chart.current.addSeries(LineSeries, {
       color: '#26a69a',
       lineWidth: 2,
     });
-
-    // Moving averages
-    ma7.current = chart.current.addSeries(LineSeries, { color: '#f5c400', lineWidth: 2 });
-    ma14.current = chart.current.addSeries(LineSeries, { color: '#00d0ff', lineWidth: 2 });
-    ma28.current = chart.current.addSeries(LineSeries, { color: '#a64cff', lineWidth: 2 });
 
     const ro = new ResizeObserver(entries => {
       const { width } = entries[0].contentRect;
@@ -82,61 +66,67 @@ export function ForexChart({ pair, price, change24h, high24h, low24h }: ForexCha
   }, []);
 
   // =========================
-  // WebSocket for live forex data
+  // WebSocket for live forex
   // =========================
   useEffect(() => {
+    const symbol = pair.replace('/', '').toUpperCase();
+
     ws.current?.close();
-    ws.current = new WebSocket(`${BINANCE_WS}/${symbol.toLowerCase()}@trade`);
+    ws.current = new WebSocket(TWELVE_DATA_WS);
+
+    ws.current.onopen = () => {
+      ws.current?.send(JSON.stringify({ action: 'subscribe', params: { symbol, interval: tf, apikey: API_KEY } }));
+    };
+
     ws.current.onmessage = e => {
       const data = JSON.parse(e.data);
-      const time = Math.floor(data.T / 1000) as UTCTimestamp;
-      const price = +data.p;
 
-      const last = candles.current[candles.current.length - 1];
-      if (!last || last.time !== time) {
-        candles.current.push({ time, open: price, high: price, low: price, close: price, volume: +data.q });
-      } else {
-        last.close = price;
-        last.high = Math.max(last.high, price);
-        last.low = Math.min(last.low, price);
-        last.volume += +data.q;
-      }
+      // Ensure we have price data
+      if (!data.close) return;
 
-      renderChart();
+      const time = Math.floor(new Date(data.datetime).getTime() / 1000) as UTCTimestamp;
+      const newCandle: Candle = {
+        time,
+        open: +data.open,
+        high: +data.high,
+        low: +data.low,
+        close: +data.close,
+        volume: +data.volume || 0,
+      };
+
+      setPrice(newCandle.close);
+
+      setCandles(prev => {
+        const last = prev[prev.length - 1];
+        if (!last || last.time !== newCandle.time) {
+          return [...prev, newCandle].slice(-100); // keep last 100 candles
+        } else {
+          last.close = newCandle.close;
+          last.high = Math.max(last.high, newCandle.high);
+          last.low = Math.min(last.low, newCandle.low);
+          last.volume += newCandle.volume;
+          return [...prev];
+        }
+      });
     };
 
     return () => ws.current?.close();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [symbol]);
+  }, [pair, tf]);
 
   // =========================
-  // Calculate SMA for MA lines
+  // Render chart
   // =========================
-  const calcSMA = (len: number) => {
-    let sum = 0;
-    return candles.current
-      .map((c, i) => {
-        sum += c.close;
-        if (i >= len) sum -= candles.current[i - len].close;
-        if (i < len - 1) return null;
-        return { time: c.time, value: +(sum / len).toFixed(5) };
-      })
-      .filter(Boolean) as { time: UTCTimestamp; value: number }[];
-  };
+  useEffect(() => {
+    candleSeries.current?.setData(candles.map(c => ({ time: c.time, value: c.close })));
+  }, [candles]);
 
-  const renderChart = () => {
-    candleSeries.current?.setData(candles.current.map(c => ({ time: c.time, value: c.close })));
-    ma7.current?.setData(calcSMA(7));
-    ma14.current?.setData(calcSMA(14));
-    ma28.current?.setData(calcSMA(28));
-  };
+  const isPositive = candles.length > 1 ? candles[candles.length - 1].close >= candles[0].close : true;
 
   // =========================
   // UI
   // =========================
   return (
     <div className="bg-slate-900/50 border border-slate-800 rounded-lg p-6">
-      {/* Price Header */}
       <div className="mb-6">
         <div className="flex items-end gap-4 mb-4">
           <div>
@@ -144,38 +134,27 @@ export function ForexChart({ pair, price, change24h, high24h, low24h }: ForexCha
             <div className="text-slate-400 text-sm mt-1">USD</div>
           </div>
           <div className={`text-2xl font-semibold mb-1 ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
-            {price ? `${isPositive ? '+' : ''}${change24h.toFixed(2)}%` : '--'}
-          </div>
-        </div>
-        {/* Price Stats */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div>
-            <div className="text-slate-500 text-xs mb-1">24h High</div>
-            <div className="text-white font-medium">{high24h ? high24h.toFixed(5) : '--'}</div>
-          </div>
-          <div>
-            <div className="text-slate-500 text-xs mb-1">24h Low</div>
-            <div className="text-white font-medium">{low24h ? low24h.toFixed(5) : '--'}</div>
+            {price && candles.length > 1
+              ? `${isPositive ? '+' : ''}${((candles[candles.length - 1].close - candles[0].close) / candles[0].close * 100).toFixed(2)}%`
+              : '--'}
           </div>
         </div>
       </div>
 
-      {/* Time Frame Buttons */}
       <div className="flex gap-2 mb-6 pb-6 border-b border-slate-700">
-        {(['1s', '1m', '15m', '1h', '4h', '1d'] as TF[]).map(time => (
+        {(['1min', '5min', '15min', '1h', '4h', '1d'] as TF[]).map(time => (
           <button
             key={time}
             className={`px-4 py-2 rounded text-sm font-medium transition ${
               time === tf ? 'bg-orange-500 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'
             }`}
-            onClick={() => setTf(time)}
+            onClick={() => setCandles([])}
           >
             {time}
           </button>
         ))}
       </div>
 
-      {/* Chart */}
       <div ref={chartEl} className="h-96 w-full rounded bg-gradient-to-b from-slate-800 to-slate-900" />
     </div>
   );

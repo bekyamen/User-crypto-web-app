@@ -148,9 +148,9 @@ export default function HomePage() {
               </div>
 
               {/* Sign Out */}
-              <button
+               <button
                 onClick={handleSignOut}
-                className="p-2 hover:bg-slate-800/50 rounded-lg transition text-slate-400 hover:text-white"
+                className="p-2 hover:bg-slate-800/50 rounded-lg transition text-red-500 hover:text-red-400"
               >
                 <LogOut size={20} />
               </button>
@@ -253,12 +253,7 @@ export default function HomePage() {
           </div>
 
           {/* Deposit Button */}
-          <div className="flex items-start justify-end">
-            <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white border border-blue-500">
-              <ArrowDown className="w-4 h-4 mr-2" />
-              Deposit
-            </Button>
-          </div>
+         
         </div>
 
         {/* Market Overview */}

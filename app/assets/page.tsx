@@ -118,9 +118,9 @@ export default function AssetsPage() {
               </div>
 
               {/* Sign Out Button */}
-              <button
+               <button
                 onClick={handleSignOut}
-                className="p-2 hover:bg-slate-800/50 rounded-lg transition text-slate-400 hover:text-white"
+                className="p-2 hover:bg-slate-800/50 rounded-lg transition text-red-500 hover:text-red-400"
               >
                 <LogOut size={20} />
               </button>

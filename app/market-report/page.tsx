@@ -5,9 +5,8 @@ import Link from "next/link"
 import { useEffect, useState, useMemo } from 'react'
 import { Search, HelpCircle, Settings, User, LogOut } from 'lucide-react'
 import { useRouter, usePathname } from "next/navigation"
-
 import { signOut } from 'next-auth/react'
-import NotificationDropdown from '@/components/NotificationDropdown' // your reusable notifications
+import NotificationDropdown from '@/components/NotificationDropdown'
 
 type Crypto = {
   symbol: string
@@ -20,14 +19,14 @@ type Crypto = {
 
 export default function MarketPage() {
   const pathname = usePathname()
-  
+  const router = useRouter()
+
   const linkClass = (path: string) =>
     `transition ${
       pathname === path
         ? "text-blue-400 font-semibold"
         : "text-slate-400 hover:text-white"
     }`
-  const router = useRouter()
 
   // ---------------- Sign Out ----------------
   const handleSignOut = () => {
@@ -114,49 +113,30 @@ export default function MarketPage() {
               />
             </Link>
 
-            {/* Navigation */}
-                       {/* Navigation Menu */}
+            {/* Navigation Menu */}
             <nav className="flex items-center gap-4 sm:gap-8 text-sm flex-1 ml-8">
-              <Link href="/home" className={linkClass("/home")}>
-                Home
-              </Link>
-            
-              <Link href="/demo" className={linkClass("/demo")}>
-                Trade
-              </Link>
-            
-              <Link href="/market-report" className={linkClass("/market-report")}>
-                Market
-              </Link>
-            
-              <Link href="/news" className={linkClass("/news")}>
-                News
-              </Link>
-            
-              <Link href="/assets" className={linkClass("/assets")}>
-                Assets
-              </Link>
+              <Link href="/home" className={linkClass("/home")}>Home</Link>
+              <Link href="/demo" className={linkClass("/demo")}>Trade</Link>
+              <Link href="/market-report" className={linkClass("/market-report")}>Market</Link>
+              <Link href="/news" className={linkClass("/news")}>News</Link>
+              <Link href="/assets" className={linkClass("/assets")}>Assets</Link>
             </nav>
           </div>
 
           {/* Header Buttons */}
           <div className="flex items-center gap-4">
-           
             <Settings
               size={20}
               className="text-slate-400 hover:text-white cursor-pointer"
               onClick={() => router.push('/settings')}
             />
-            {/* Notification Dropdown */}
             <NotificationDropdown />
-            {/* Sign Out */}
-            <button
+             <button
               onClick={handleSignOut}
-              className="p-2 hover:bg-slate-800/50 rounded-lg transition text-slate-400 hover:text-white"
+              className="p-2 hover:bg-slate-800/50 rounded-lg transition text-red-500 hover:text-red-400"
             >
               <LogOut size={20} />
             </button>
-           
           </div>
         </div>
 
@@ -189,6 +169,7 @@ export default function MarketPage() {
                   <th className="py-3 text-left">High</th>
                   <th className="py-3 text-left">Low</th>
                   <th className="py-3 text-left">Volume</th>
+                  <th className="py-3 text-left">Trade</th> {/* New column */}
                 </tr>
               </thead>
               <tbody>
@@ -207,6 +188,15 @@ export default function MarketPage() {
                     <td className="py-3">${parseFloat(coin.highPrice).toFixed(4)}</td>
                     <td className="py-3">${parseFloat(coin.lowPrice).toFixed(4)}</td>
                     <td className="py-3">{parseFloat(coin.volume).toLocaleString()}</td>
+                    {/* Trade Button */}
+                    <td className="py-3">
+                      <button
+                        onClick={() => router.push(`/demo?pair=${coin.symbol}`)}
+                        className="px-3 py-1 bg-blue-500 hover:bg-blue-600 rounded text-sm transition"
+                      >
+                        Trade
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
