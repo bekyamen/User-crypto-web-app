@@ -37,13 +37,13 @@ export function Header() {
               </button>
               <div className="absolute left-0 mt-0 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition">
                 <Link href="/demo" className="block px-4 py-2 text-slate-300 hover:text-white hover:bg-slate-700/50 first:rounded-t-lg">
-                  Crypto Tranding
+                  Crypto Trading
                 </Link>
                 <Link href="/demo" className="block px-4 py-2 text-slate-300 hover:text-white hover:bg-slate-700/50">
-                  Forex  Tranding
+                  Forex  Trading
                 </Link>
                 <Link href="/demo" className="block px-4 py-2 text-slate-300 hover:text-white hover:bg-slate-700/50 last:rounded-b-lg">
-                  Gold Tranding
+                  Gold Trading
                 </Link>
                  <Link href="#" className="block px-4 py-2 text-slate-300 hover:text-white hover:bg-slate-700/50 last:rounded-b-lg">
                   
