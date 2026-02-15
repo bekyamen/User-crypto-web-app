@@ -6,8 +6,8 @@ import { useRouter, usePathname } from "next/navigation"
 import { useState, useRef, useEffect } from 'react'
 import { Settings, Bell, LogOut } from 'lucide-react'
 
-import { TradingDashboard } from '@/components/trading-dashboard'
-import { TradeModal } from '@/components/trade-modal'
+import { TradingDashboard } from '@/components/trading-dashboard-for-real'
+import { TradeModal } from '@/components/trade-modal-for reall'
 import { useAuth } from '@/hooks/useAuth'
 
 export interface TradeModalData {
@@ -21,7 +21,7 @@ export interface TradeModalData {
   }
 }
 
-export default function DemoPage() {
+export default function RealPage() {
   const pathname = usePathname()
   const router = useRouter()
   const { user, isLoading } = useAuth()
@@ -117,7 +117,7 @@ export default function DemoPage() {
             {/* Navigation */}
             <nav className="flex items-center gap-4 sm:gap-8 text-sm flex-1 ml-8">
               <Link href="/home" className={linkClass("/home")}>Home</Link>
-              <Link href="/your-trading" className={linkClass("/your-trading")}>Trade</Link>
+              <Link href="/real" className={linkClass("/your-trading")}>Trade</Link>
               <Link href="/market-report" className={linkClass("/market-report")}>Market</Link>
               <Link href="/news" className={linkClass("/news")}>News</Link>
               <Link href="/assets" className={linkClass("/assets")}>Assets</Link>
@@ -135,7 +135,7 @@ export default function DemoPage() {
               <div className="relative" ref={notificationRef}>
                 <button
                   onClick={(e) => {
-                    e.stopPropagation() // prevent document click from immediately closing
+                    e.stopPropagation()
                     setShowNotifications(!showNotifications)
                   }}
                   className="p-2 hover:bg-slate-800/50 rounded-lg transition text-slate-400 hover:text-white relative"
@@ -163,14 +163,11 @@ export default function DemoPage() {
               </div>
 
               <button
-  onClick={handleSignOut}
-  className="p-2 hover:bg-slate-800/50 rounded-lg transition text-red-500 hover:text-red-400"
->
-  <LogOut size={20} />
-</button>
-
-
-
+                onClick={handleSignOut}
+                className="p-2 hover:bg-slate-800/50 rounded-lg transition text-red-500 hover:text-red-400"
+              >
+                <LogOut size={20} />
+              </button>
             </div>
           </div>
 
@@ -214,10 +211,8 @@ export default function DemoPage() {
         onClose={handleCloseTrade}
         type={tradeModal.type}
         asset={tradeModal.asset}
+         // ✅ force real trading here
       />
     </div>
   )
 }
-
-
-

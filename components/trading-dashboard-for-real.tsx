@@ -30,9 +30,6 @@ export function TradingDashboard({ tab, onTrade }: TradingDashboardProps) {
   const { user, isAuthenticated } = useAuth()
 
   // ---------------- States ----------------
-  const [userBalance, setUserBalance] = useState<number>(0)
-const { token } = useAuth() // make sure your hook returns token
-
   const [selectedPair, setSelectedPair] = useState('BTC/USDT')
   const [markets, setMarkets] = useState<Market[]>([])
   const [bids, setBids] = useState<any[]>([])
@@ -75,32 +72,6 @@ const { token } = useAuth() // make sure your hook returns token
     }
     return () => ws.close()
   }, [selectedPair])
-
-  // ---------------- Fetch User Balance ----------------
-useEffect(() => {
-  const fetchBalance = async () => {
-    if (!token) return
-
-    try {
-      const res = await fetch("https://api.bitorynfx.com/api/users/balance", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-
-      const data = await res.json()
-
-      if (data.success) {
-        setUserBalance(data.data.balance)
-      }
-    } catch (error) {
-      console.error("Failed to fetch balance:", error)
-    }
-  }
-
-  fetchBalance()
-}, [token])
-
 
   // ---------------- Recent Trades ----------------
   useEffect(() => {
@@ -245,15 +216,18 @@ useEffect(() => {
 </div>
 
 
-            
+            <input
+              type="number"
+              value={quantity}
+              onChange={(e) => setQuantity(+e.target.value)}
+              className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-white"
+              disabled={!isAuthenticated || !user}
+              min={0}
+            />
 
             <div className="mt-2 text-white text-sm">
-  Available Balance:{" "}
-  <span className="font-medium text-green-400">
-    {userBalance.toFixed(2)} USDT
-  </span>
-</div>
-
+              Total: <span className="font-medium">{(quantity * currentPrice).toFixed(2)}</span>
+            </div>
           </div>
 
           {/* Recent Trades */}

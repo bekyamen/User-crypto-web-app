@@ -38,11 +38,7 @@ export function TradeModal({
   asset,
   onTradeComplete
 }: TradeModalProps) {
-
-  
- const { user, isAuthenticated, token } = useAuth()
-
-const [userBalance, setUserBalance] = useState<number>(0)
+  const { user, isAuthenticated } = useAuth()
 
   const [amount, setAmount] = useState<number | ''>('')
   const [selected, setSelected] = useState(EXPIRATION_OPTIONS[0])
@@ -68,38 +64,6 @@ const [userBalance, setUserBalance] = useState<number>(0)
       setIsLoading(false)
     }
   }, [isOpen])
-
-  
-
-  // Fetch balance when modal opens
-useEffect(() => {
-  if (!isOpen || !token) return
-
-  const fetchBalance = async () => {
-    try {
-      const res = await fetch(
-        "https://api.bitorynfx.com/api/users/balance",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      )
-
-      const data = await res.json()
-
-      if (data.success) {
-        setUserBalance(data.data.balance)
-      }
-    } catch (err) {
-      console.error("Failed to fetch balance:", err)
-    }
-  }
-
-  fetchBalance()
-}, [isOpen, token])
-
-
 
   // Use backend profit/loss percent if available
   const estimatedIncome =
@@ -141,45 +105,14 @@ useEffect(() => {
     }
   }
 
- const handleCountdownComplete = useCallback(async () => {
-  setCountdownActive(false)
+  const handleCountdownComplete = useCallback(() => {
+    setCountdownActive(false)
 
-  if (tradeResultTemp) {
-    setResult(tradeResultTemp)
-    onTradeComplete?.(tradeResultTemp)
-
-    // 🔥 INSTANT LOCAL BALANCE UPDATE
-    setUserBalance((prev) => {
-      if (tradeResultTemp.outcome === 'WIN') {
-        return prev + tradeResultTemp.returnedAmount
-      } else {
-        return prev - tradeResultTemp.amount
-      }
-    })
-
-    // Optional: sync with backend to stay accurate
-    if (token) {
-      try {
-        const res = await fetch(
-          "http://localhost:5000/api/users/balance",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        )
-        const data = await res.json()
-        if (data.success) {
-          setUserBalance(data.data.balance)
-        }
-      } catch (err) {
-        console.error("Balance refresh failed:", err)
-      }
+    if (tradeResultTemp) {
+      setResult(tradeResultTemp)
+      onTradeComplete?.(tradeResultTemp)
     }
-  }
-}, [tradeResultTemp, onTradeComplete, token])
-
-
+  }, [tradeResultTemp, onTradeComplete])
 
   // Cancel countdown / trade
   const handleCancelTrade = () => {
@@ -197,28 +130,18 @@ useEffect(() => {
       <div className="w-full max-w-md overflow-hidden rounded-2xl border border-blue-900 bg-gradient-to-b from-[#0b1d33] to-[#050b18] shadow-2xl">
 
         {/* Header */}
-       <div className="flex items-center justify-between border-b border-blue-900 bg-[#050b18] p-5">
-  
-  <div>
-    <h2 className="text-xl font-bold text-white">
-      {asset.symbol}/USDT
-    </h2>
+        <div className="flex items-center justify-between border-b border-blue-900 bg-[#050b18] p-5">
+          <h2 className="text-xl font-bold text-white">
+            {asset.symbol}/USDT
+          </h2>
 
-    <div className="text-sm text-slate-400 mt-1">
-      Balance:{' '}
-      <span className="font-semibold text-emerald-400">
-        {userBalance.toLocaleString()} USDT
-      </span>
-    </div>
-  </div>
-
-  <button
-    onClick={showCountdown ? handleCancelTrade : onClose}
-    className="text-slate-400 hover:text-white"
-  >
-    <X />
-  </button>
-</div>
+          <button
+            onClick={showCountdown ? handleCancelTrade : onClose}
+            className="text-slate-400 hover:text-white"
+          >
+            <X />
+          </button>
+        </div>
 
         {!showCountdown ? (
           <form onSubmit={handleSubmit} className="space-y-6 p-6">
