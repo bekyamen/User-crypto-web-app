@@ -28,6 +28,7 @@ interface TradingDashboardProps {
 
 export function TradingDashboard({ tab, onTrade }: TradingDashboardProps) {
   const { user, isAuthenticated } = useAuth()
+  const [availableBalance, setAvailableBalance] = useState<number>(0)
 
   // ---------------- States ----------------
   const [selectedPair, setSelectedPair] = useState('BTC/USDT')
@@ -94,6 +95,36 @@ export function TradingDashboard({ tab, onTrade }: TradingDashboardProps) {
 
   const currentPrice = markets.find(m => m.symbol === selectedPair)?.price ?? 0
   const currentChange = markets.find(m => m.symbol === selectedPair)?.change ?? 0
+
+
+   useEffect(() => {
+  if (!isAuthenticated || !user) return
+
+  const fetchUserBalance = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/api/admin/trades/users')
+      const data = await res.json()
+
+      const users = data?.data?.users || []
+
+      const currentUser = users.find(
+        (u: any) => String(u.id) === String(user.id)
+      )
+
+      if (currentUser) {
+        setAvailableBalance(Number(currentUser.balance))
+      } else {
+        setAvailableBalance(0)
+      }
+    } catch (error) {
+      console.error('Failed to fetch user balance:', error)
+    }
+  }
+
+  fetchUserBalance()
+}, [isAuthenticated, user])
+
+
 
   return (
     <>
@@ -183,6 +214,17 @@ export function TradingDashboard({ tab, onTrade }: TradingDashboardProps) {
                 You must be logged in to place a trade.
               </div>
             )}
+
+
+            <div className="mb-4 p-3 bg-slate-800 rounded-lg">
+  <div className="text-slate-400 text-xs">Available Balance</div>
+  <div className="text-white text-lg font-semibold">
+    ${availableBalance.toFixed(2)}
+  </div>
+</div>
+
+
+
 
             <div className="flex gap-2 mb-4">
   {(['buy', 'sell'] as const).map(type => (

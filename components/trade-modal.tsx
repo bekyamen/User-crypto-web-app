@@ -11,6 +11,8 @@ interface TradeModalProps {
   onClose: () => void
   type: 'buy' | 'sell'
   asset: Asset
+  userBalance: number
+  onBalanceUpdate?: (newBalance: number) => void
   onTradeComplete?: (result: TradeResult) => void
 }
 
@@ -36,26 +38,28 @@ export function TradeModal({
   onClose,
   type,
   asset,
+  userBalance: initialBalance,
+  onBalanceUpdate,
   onTradeComplete
 }: TradeModalProps) {
+  const { user, isAuthenticated } = useAuth()
 
-  
- const { user, isAuthenticated, token } = useAuth()
-
-const [userBalance, setUserBalance] = useState<number>(0)
-
+  const [userBalance, setUserBalance] = useState<number>(initialBalance ?? 0)
   const [amount, setAmount] = useState<number | ''>('')
-  const [selected, setSelected] = useState(EXPIRATION_OPTIONS[0])
-
+  const [selected, setSelected] = useState<ExpirationOption>(EXPIRATION_OPTIONS[0])
   const [showCountdown, setShowCountdown] = useState(false)
   const [countdownActive, setCountdownActive] = useState(false)
-
   const [tradeResultTemp, setTradeResultTemp] = useState<TradeResult | null>(null)
   const [result, setResult] = useState<TradeResult | null>(null)
   const [actualPercent, setActualPercent] = useState<number | null>(null)
-
   const [isLoading, setIsLoading] = useState(false)
 
+  // Sync modal balance with parent
+  useEffect(() => {
+    setUserBalance(initialBalance ?? 0)
+  }, [initialBalance])
+
+  // Reset modal state on close
   useEffect(() => {
     if (!isOpen) {
       setAmount('')
@@ -69,125 +73,84 @@ const [userBalance, setUserBalance] = useState<number>(0)
     }
   }, [isOpen])
 
-  
-
-  // Fetch balance when modal opens
-useEffect(() => {
-  if (!isOpen || !token) return
-
-  const fetchBalance = async () => {
-    try {
-      const res = await fetch(
-        "https://api.bitorynfx.com/api/users/balance",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      )
-
-      const data = await res.json()
-
-      if (data.success) {
-        setUserBalance(data.data.balance)
-      }
-    } catch (err) {
-      console.error("Failed to fetch balance:", err)
-    }
-  }
-
-  fetchBalance()
-}, [isOpen, token])
-
-
-
-  // Use backend profit/loss percent if available
   const estimatedIncome =
     amount !== '' && actualPercent !== null
       ? amount + amount * (actualPercent / 100)
       : amount !== ''
-        ? amount + amount * (selected.percent / 100) // fallback before trade
+        ? amount + amount * (selected.percent / 100)
         : null
 
   const handleQuickAmount = (p: number) => {
-    setAmount(Math.round(10_000 * (p / 100)))
+    setAmount(Math.round((userBalance ?? 0) * (p / 100)))
   }
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault()
+  if (!user || !isAuthenticated || amount === '' || amount <= 0) return
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!user || !isAuthenticated || amount === '') return
+  setIsLoading(true)
 
-    setIsLoading(true)
+  try {
+    // Deduct immediately
+    const newBalance = userBalance - amount
+    setUserBalance(newBalance)
+    onBalanceUpdate?.(newBalance)
+
+    // Execute trade
+    const res = await executeTrade(
+      user.id,
+      type,
+      asset,
+      amount,
+      selected.seconds
+    )
+
+    setTradeResultTemp(res)
+    setActualPercent(res.profitLossPercent)
+
+    // ✅ Start countdown cleanly
     setShowCountdown(true)
     setCountdownActive(true)
 
-    try {
-      const res = await executeTrade(
-        user.id,
-        type,
-        asset,
-        amount,
-        selected.seconds
-      )
-      setTradeResultTemp(res)
-      setActualPercent(res.profitLossPercent) // <-- use backend percent
-    } catch (err) {
-      console.error(err)
-      setShowCountdown(false)
-      setCountdownActive(false)
-      setActualPercent(null)
-    } finally {
-      setIsLoading(false)
-    }
+  } catch (err) {
+    console.error(err)
+    setShowCountdown(false)
+    setCountdownActive(false)
+    setActualPercent(null)
+  } finally {
+    setIsLoading(false)
   }
+}
 
- const handleCountdownComplete = useCallback(async () => {
-  setCountdownActive(false)
 
-  if (tradeResultTemp) {
-    setResult(tradeResultTemp)
-    onTradeComplete?.(tradeResultTemp)
+  const handleCountdownComplete = useCallback(() => {
+    setCountdownActive(false)
+    if (tradeResultTemp) {
+      setResult(tradeResultTemp)
+      onTradeComplete?.(tradeResultTemp)
 
-    // 🔥 INSTANT LOCAL BALANCE UPDATE
-    setUserBalance((prev) => {
-      if (tradeResultTemp.outcome === 'WIN') {
-        return prev + tradeResultTemp.returnedAmount
-      } else {
-        return prev - tradeResultTemp.amount
-      }
-    })
+      // Update balance based on trade outcome
+      const newBalance =
+        tradeResultTemp.outcome === 'WIN'
+          ? (userBalance ?? 0) + tradeResultTemp.returnedAmount
+          : userBalance ?? 0
 
-    // Optional: sync with backend to stay accurate
-    if (token) {
-      try {
-        const res = await fetch(
-          "http://localhost:5000/api/users/balance",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        )
-        const data = await res.json()
-        if (data.success) {
-          setUserBalance(data.data.balance)
-        }
-      } catch (err) {
-        console.error("Balance refresh failed:", err)
-      }
+      setUserBalance(newBalance)
+      onBalanceUpdate?.(newBalance)
     }
-  }
-}, [tradeResultTemp, onTradeComplete, token])
+  }, [tradeResultTemp, onTradeComplete, onBalanceUpdate, userBalance])
 
-
-
-  // Cancel countdown / trade
   const handleCancelTrade = () => {
+    if (amount && userBalance !== undefined) {
+      const refunded = (userBalance ?? 0) + (amount ?? 0)
+      setUserBalance(refunded)
+      onBalanceUpdate?.(refunded)
+    }
     setCountdownActive(false)
     setShowCountdown(false)
     setTradeResultTemp(null)
     setResult(null)
     setActualPercent(null)
+    setAmount('')
   }
 
   if (!isOpen) return null
@@ -195,54 +158,42 @@ useEffect(() => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
       <div className="w-full max-w-md overflow-hidden rounded-2xl border border-blue-900 bg-gradient-to-b from-[#0b1d33] to-[#050b18] shadow-2xl">
-
-        {/* Header */}
-       <div className="flex items-center justify-between border-b border-blue-900 bg-[#050b18] p-5">
-  
-  <div>
-    <h2 className="text-xl font-bold text-white">
-      {asset.symbol}/USDT
-    </h2>
-
-    <div className="text-sm text-slate-400 mt-1">
-      Balance:{' '}
-      <span className="font-semibold text-emerald-400">
-        {userBalance.toLocaleString()} USDT
-      </span>
-    </div>
-  </div>
-
-  <button
-    onClick={showCountdown ? handleCancelTrade : onClose}
-    className="text-slate-400 hover:text-white"
-  >
-    <X />
-  </button>
-</div>
+        
+        {/* HEADER */}
+        <div className="flex items-center justify-between border-b border-blue-900 bg-[#050b18] p-5">
+          <div>
+            <h2 className="text-xl font-bold text-white">{asset.symbol}/USDT</h2>
+            <div className="text-sm text-slate-400 mt-1">
+              Balance:{' '}
+              <span className="font-semibold text-emerald-400">
+                {(userBalance ?? 0).toLocaleString()} USDT
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={showCountdown ? handleCancelTrade : onClose}
+            className="text-slate-400 hover:text-white"
+          >
+            <X />
+          </button>
+        </div>
 
         {!showCountdown ? (
           <form onSubmit={handleSubmit} className="space-y-6 p-6">
-
             {/* Amount */}
             <div>
-              <label className="mb-2 block text-sm text-slate-400">
-                Trade Amount (USDT)
-              </label>
-
+              <label className="mb-2 block text-sm text-slate-400">Trade Amount (USDT)</label>
               <input
                 type="number"
                 value={amount}
                 onChange={(e) =>
-                  e.target.value === ''
-                    ? setAmount('')
-                    : setAmount(Number(e.target.value))
+                  e.target.value === '' ? setAmount('') : setAmount(Number(e.target.value))
                 }
                 className="no-spinner w-full rounded-lg border border-blue-900 bg-[#08162b] px-4 py-3 text-white focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/30"
                 placeholder="Enter amount"
               />
-
               <div className="mt-3 grid grid-cols-4 gap-2">
-                {[25, 50, 75, 100].map((p) => (
+                {[25, 50, 75, 100].map(p => (
                   <button
                     key={p}
                     type="button"
@@ -257,12 +208,9 @@ useEffect(() => {
 
             {/* Expiration */}
             <div>
-              <label className="mb-2 block text-sm text-slate-400">
-                Expiration Time
-              </label>
-
+              <label className="mb-2 block text-sm text-slate-400">Expiration Time</label>
               <div className="grid grid-cols-3 gap-3">
-                {EXPIRATION_OPTIONS.map((opt) => (
+                {EXPIRATION_OPTIONS.map(opt => (
                   <button
                     key={opt.seconds}
                     type="button"
@@ -273,72 +221,50 @@ useEffect(() => {
                         : 'border-blue-900 hover:border-cyan-500'
                     }`}
                   >
-                    <div className="text-sm font-bold text-white">
-                      {opt.label}
-                    </div>
-                    <div className="text-xs text-cyan-400">
-                      +{actualPercent ?? opt.percent}%
-                    </div>
+                    <div className="text-sm font-bold text-white">{opt.label}</div>
+                    <div className="text-xs text-cyan-400">+{actualPercent ?? opt.percent}%</div>
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Estimated */}
+            {/* Estimated Income */}
             <div className="rounded-xl border border-blue-900 bg-[#08162b] p-4">
               <div className="flex justify-between text-sm text-slate-400">
                 <span>Estimated Income</span>
                 <span className="font-bold text-emerald-400">
-                  {estimatedIncome
-                    ? `${estimatedIncome.toLocaleString()} USDT`
-                    : '--'}
+                  {estimatedIncome ? `${estimatedIncome.toLocaleString()} USDT` : '--'}
                 </span>
               </div>
             </div>
 
-            {/* Min / Max */}
-            <div className="flex justify-between text-xs text-slate-400">
-              <span>MIN: {selected.min.toLocaleString()} USD</span>
-              <span>MAX: {selected.max.toLocaleString()} USD</span>
-            </div>
-
             <button
               type="submit"
-              disabled={!isAuthenticated || amount === ''}
+              disabled={!isAuthenticated || amount === '' || isLoading}
               className="w-full rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 py-3 font-semibold text-white hover:shadow-lg hover:shadow-cyan-500/40 disabled:opacity-50"
             >
-              Place Trade
+              {isLoading ? 'Processing...' : 'Place Trade'}
             </button>
           </form>
         ) : (
-          <div className="space-y-6 p-6">
+          <div className="space-y-6 p-6 text-center">
+            {/* Countdown */}
+            <CircularCountdown
+              duration={selected.seconds}
+              isActive={countdownActive}
+              onComplete={handleCountdownComplete}
+            />
 
-            <div className="flex justify-center">
-              <CircularCountdown
-                duration={selected.seconds}
-                isActive={countdownActive}
-                onComplete={handleCountdownComplete}
-              />
-            </div>
-
+            {/* Result */}
             {result && (
               <>
                 <div className="space-y-3 text-center">
-                  <div
-                    className={`text-3xl font-bold ${
-                      result.outcome === 'WIN'
-                        ? 'text-emerald-400'
-                        : 'text-red-400'
-                    }`}
-                  >
+                  <div className={`text-3xl font-bold ${result.outcome === 'WIN' ? 'text-emerald-400' : 'text-red-400'}`}>
                     {result.outcome === 'WIN' ? 'You Won!' : 'You Lost'}
                   </div>
-
                   <div className="text-slate-400">
                     Returned:{' '}
-                    <span className="font-semibold text-white">
-                      {result.returnedAmount.toLocaleString()} USDT
-                    </span>
+                    <span className="font-semibold text-white">{result.returnedAmount.toLocaleString()} USDT</span>
                   </div>
                 </div>
 

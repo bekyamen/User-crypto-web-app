@@ -1,11 +1,14 @@
+
+
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { CryptoChart } from '@/components/crypto-chart'
 import { ForexChart } from '@/components/forex-chart'
 import { GoldChart } from '@/components/gold-chart'
 import { TradeModal } from './trade-modal'
 import { useAuth } from '@/hooks/useAuth'
+import type { TradeResult } from '@/lib/api-two'
 
 interface Market {
   symbol: string
@@ -16,38 +19,45 @@ interface Market {
 
 interface TradingDashboardProps {
   tab: 'crypto' | 'forex' | 'gold'
-  onTrade?: (
-    type: 'buy' | 'sell',
-    userId: string,
-    symbol: string,
-    name: string,
-    price: number,
-    assetClass: 'crypto' | 'forex' | 'gold'
-  ) => void
 }
 
-export function TradingDashboard({ tab, onTrade }: TradingDashboardProps) {
-  const { user, isAuthenticated } = useAuth()
+export function TradingDashboard({ tab }: TradingDashboardProps) {
+  const { user, isAuthenticated, token } = useAuth()
 
-  // ---------------- States ----------------
   const [userBalance, setUserBalance] = useState<number>(0)
-const { token } = useAuth() // make sure your hook returns token
+  const [totalTrades, setTotalTrades] = useState<number>(0)
 
   const [selectedPair, setSelectedPair] = useState('BTC/USDT')
   const [markets, setMarkets] = useState<Market[]>([])
-  const [bids, setBids] = useState<any[]>([])
-  const [asks, setAsks] = useState<any[]>([])
-  const [trades, setTrades] = useState<any[]>([])
-  const [quantity, setQuantity] = useState(0) // <-- added
+  const [bids, setBids] = useState<[string, string][]>([])
+  const [asks, setAsks] = useState<[string, string][]>([])
+  const [trades, setTrades] = useState<{ price: number; amount: number }[]>([])
 
   const [modalOpen, setModalOpen] = useState(false)
   const [modalType, setModalType] = useState<'buy' | 'sell'>('buy')
+  
   const [searchQuery, setSearchQuery] = useState('')
 
-  // ---------------- Fetch Market List ----------------
+  /* ================= FETCH USER BALANCE ================= */
+  useEffect(() => {
+    if (!token) return
+    const fetchBalance = async () => {
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/users/balance`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        const data = await res.json()
+        if (data.success) setUserBalance(data.data.balance)
+      } catch (err) {
+        console.error('Failed to fetch balance:', err)
+      }
+    }
+    fetchBalance()
+  }, [token])
+
+  /* ================= FETCH MARKETS ================= */
   useEffect(() => {
     if (tab !== 'crypto') return
-
     const ws = new WebSocket('wss://stream.binance.com:9443/ws/!ticker@arr')
     ws.onmessage = (msg) => {
       const data = JSON.parse(msg.data) as any[]
@@ -57,14 +67,14 @@ const { token } = useAuth() // make sure your hook returns token
           symbol: t.s.slice(0, -4) + '/USDT',
           name: t.s.slice(0, -4),
           price: parseFloat(t.c),
-          change: parseFloat(t.P)
+          change: parseFloat(t.P),
         }))
       setMarkets(marketList)
     }
     return () => ws.close()
   }, [tab])
 
-  // ---------------- Order Book ----------------
+  /* ================= ORDER BOOK ================= */
   useEffect(() => {
     if (!selectedPair) return
     const ws = new WebSocket(`wss://stream.binance.com:9443/ws/${selectedPair.replace('/', '').toLowerCase()}@depth20@100ms`)
@@ -76,33 +86,7 @@ const { token } = useAuth() // make sure your hook returns token
     return () => ws.close()
   }, [selectedPair])
 
-  // ---------------- Fetch User Balance ----------------
-useEffect(() => {
-  const fetchBalance = async () => {
-    if (!token) return
-
-    try {
-      const res = await fetch("https://api.bitorynfx.com/api/users/balance", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-
-      const data = await res.json()
-
-      if (data.success) {
-        setUserBalance(data.data.balance)
-      }
-    } catch (error) {
-      console.error("Failed to fetch balance:", error)
-    }
-  }
-
-  fetchBalance()
-}, [token])
-
-
-  // ---------------- Recent Trades ----------------
+  /* ================= RECENT TRADES ================= */
   useEffect(() => {
     if (!selectedPair) return
     const ws = new WebSocket(`wss://stream.binance.com:9443/ws/${selectedPair.replace('/', '').toLowerCase()}@trade`)
@@ -113,76 +97,98 @@ useEffect(() => {
     return () => ws.close()
   }, [selectedPair])
 
-  // ---------------- Filtered Markets ----------------
+  /* ================= FILTER MARKETS ================= */
   const filteredMarkets = useMemo(() => {
-    return markets.filter(m =>
-      m.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      m.name.toLowerCase().includes(searchQuery.toLowerCase())
+    return markets.filter(
+      m =>
+        m.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        m.name.toLowerCase().includes(searchQuery.toLowerCase())
     )
   }, [markets, searchQuery])
 
   const currentPrice = markets.find(m => m.symbol === selectedPair)?.price ?? 0
   const currentChange = markets.find(m => m.symbol === selectedPair)?.change ?? 0
 
+  /* ================= HANDLE TRADE COMPLETE ================= */
+  const handleTradeComplete = (result: TradeResult) => {
+    // Update dashboard balance instantly
+    setUserBalance(prev =>
+      result.outcome === 'WIN' ? prev + result.returnedAmount : prev - result.amount
+    )
+    // Update total trades
+    setTotalTrades(prev => prev + 1)
+  }
+
   return (
     <>
+      {/* ================= TOP BALANCE HEADER ================= */}
+      <div className="bg-gradient-to-r from-slate-900 to-slate-800 border border-slate-700 rounded-xl p-6 mb-6 flex flex-col lg:flex-row lg:items-center lg:justify-between shadow-lg shadow-green-900/10">
+        <div>
+          <div className="text-slate-400 text-sm uppercase tracking-wide">Demo Balance</div>
+          <div className="text-4xl font-bold text-green-400 mt-2">{userBalance.toFixed(2)}</div>
+          <div className="text-slate-500 text-sm mt-1">Practice trading with virtual funds</div>
+        </div>
+        <div className="flex gap-4 mt-4 lg:mt-0">
+          <div className="bg-purple-900/40 border border-purple-700 px-4 py-3 rounded-lg text-center">
+            <div className="text-xs text-purple-300">Trading Mode</div>
+            <div className="text-purple-400 font-semibold">Practice</div>
+          </div>
+          <div className="bg-emerald-900/40 border border-emerald-700 px-4 py-3 rounded-lg text-center">
+            <div className="text-xs text-emerald-300">Total Trades</div>
+            <div className="text-emerald-400 font-semibold">{totalTrades}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* ================= MAIN GRID ================= */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* ---------------- Left Sidebar: Market List ---------------- */}
+        {/* LEFT MARKETS */}
         <div className="lg:col-span-1">
           <div className="bg-slate-900/50 border border-slate-800 rounded-lg p-4 sticky top-24">
             <input
               type="text"
               placeholder="Search pairs..."
               value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white mb-4"
             />
             <div className="space-y-2 max-h-[80vh] overflow-y-auto">
-              {filteredMarkets.map(market => {
-                const isPositive = market.change >= 0
-                return (
-                  <button
-                    key={market.symbol}
-                    onClick={() => setSelectedPair(market.symbol)}
-                    className={`w-full px-3 py-2 rounded ${
-                      selectedPair === market.symbol ? 'bg-blue-500/20 border border-blue-500/50' : 'hover:bg-slate-800'
-                    }`}
-                  >
-                    <div className="flex justify-between">
-                      <div>
-                        <div className="text-white text-sm font-medium">{market.name}</div>
-                        <div className="text-slate-400 text-xs">{market.symbol}</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-white text-sm">{market.price.toFixed(2)}</div>
-                        <div className={`text-xs ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
-                          {isPositive ? '+' : ''}{market.change.toFixed(2)}%
-                        </div>
+              {filteredMarkets.map(m => (
+                <button
+                  key={m.symbol}
+                  onClick={() => setSelectedPair(m.symbol)}
+                  className={`w-full px-3 py-2 rounded ${selectedPair === m.symbol ? 'bg-blue-500/20 border border-blue-500/50' : 'hover:bg-slate-800'}`}
+                >
+                  <div className="flex justify-between">
+                    <div>
+                      <div className="text-white text-sm font-medium">{m.name}</div>
+                      <div className="text-slate-400 text-xs">{m.symbol}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-white text-sm">{m.price.toFixed(2)}</div>
+                      <div className={`text-xs ${m.change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {m.change >= 0 ? '+' : ''}{m.change.toFixed(2)}%
                       </div>
                     </div>
-                  </button>
-                )
-              })}
+                  </div>
+                </button>
+              ))}
             </div>
           </div>
         </div>
 
-        {/* ---------------- Center Chart ---------------- */}
+        {/* CENTER CHART */}
         <div className="lg:col-span-2">
           {tab === 'crypto' && <CryptoChart pair={selectedPair} price={currentPrice} change24h={currentChange} />}
           {tab === 'forex' && <ForexChart pair={selectedPair} price={currentPrice} change24h={currentChange} />}
           {tab === 'gold' && <GoldChart pair={selectedPair} price={currentPrice} change24h={currentChange} />}
         </div>
 
-        {/* ---------------- Right Sidebar ---------------- */}
+        {/* RIGHT TRADE PANEL */}
         <div className="space-y-6">
           {/* Order Book */}
           <div className="bg-slate-900/50 border border-slate-800 rounded-lg p-4">
             <h3 className="text-white font-semibold mb-4">Order Book</h3>
-            <div className="flex justify-between text-xs mb-2">
-              <span className="text-red-400 font-medium">Bids</span>
-              <span className="text-green-400 font-medium">Asks</span>
-            </div>
             <div className="flex gap-2 max-h-[60vh] overflow-y-auto">
               <div className="flex-1">
                 {bids.map(([p, a], i) => (
@@ -203,57 +209,28 @@ useEffect(() => {
             </div>
           </div>
 
-          {/* Trading Panel */}
+          {/* Trade Panel */}
           <div className="bg-slate-900/50 border border-slate-800 rounded-lg p-4">
             <h3 className="text-white font-semibold mb-4">Trade {selectedPair}</h3>
-
-            {!isAuthenticated && (
-              <div className="bg-red-900/30 border border-red-700 rounded-lg p-2 text-sm text-red-300 mb-3">
-                You must be logged in to place a trade.
-              </div>
-            )}
-
-            <div className="flex gap-2 mb-4">
-  {(['buy', 'sell'] as const).map(type => (
-    <button
-      key={type}
-      onClick={() => {
-        if (!isAuthenticated || !user) return
-
-        // Open the modal
-        setModalType(type)
-        setModalOpen(true)
-
-        // Call optional callback if needed
-        onTrade?.(
-          type,
-          user.id,
-          selectedPair.split('/')[0],
-          selectedPair,
-          currentPrice,
-          tab
-        )
-      }}
-      disabled={!isAuthenticated || !user}
-      className={`flex-1 py-2 rounded font-semibold text-white ${
-        type === 'buy' ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'
-      }`}
-    >
-      {type.toUpperCase()}
-    </button>
-  ))}
-</div>
-
-
-            
-
-            <div className="mt-2 text-white text-sm">
-  Available Balance:{" "}
-  <span className="font-medium text-green-400">
-    {userBalance.toFixed(2)} USDT
-  </span>
-</div>
-
+            <div className="flex gap-2">
+              {(['buy', 'sell'] as const).map(type => (
+                <button
+                  key={type}
+                  disabled={!isAuthenticated || !user}
+                  onClick={() => {
+                    setModalType(type)
+                    setModalOpen(true)
+                  }}
+                  className={`flex-1 py-2 rounded font-semibold text-white ${type === 'buy' ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'}`}
+                >
+                  {type.toUpperCase()}
+                </button>
+              ))}
+            </div>
+            <div className="mt-4 text-sm text-white">
+              Available Balance:{' '}
+              <span className="text-green-400 font-semibold">{userBalance.toFixed(2)} USDT</span>
+            </div>
           </div>
 
           {/* Recent Trades */}
@@ -269,13 +246,15 @@ useEffect(() => {
         </div>
       </div>
 
-      {/* ---------------- Trade Modal ---------------- */}
+      {/* ================= TRADE MODAL ================= */}
       {modalOpen && (
         <TradeModal
           isOpen={modalOpen}
           onClose={() => setModalOpen(false)}
           type={modalType}
           asset={{ symbol: selectedPair.split('/')[0], price: currentPrice } as any}
+          userBalance={userBalance}
+          onTradeComplete={handleTradeComplete}
         />
       )}
     </>

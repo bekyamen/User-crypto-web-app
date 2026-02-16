@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 
 interface CircularCountdownProps {
   duration: number
@@ -13,25 +13,38 @@ export function CircularCountdown({
   isActive,
   onComplete
 }: CircularCountdownProps) {
+
   const [timeLeft, setTimeLeft] = useState(duration)
-  const [isCompleted, setIsCompleted] = useState(false)
+  const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
   const circumference = 2 * Math.PI * 85
   const progress = (timeLeft / duration) * circumference
   const strokeDashoffset = circumference - progress
 
+  // Reset when duration changes
+  useEffect(() => {
+    setTimeLeft(duration)
+  }, [duration])
+
   useEffect(() => {
     if (!isActive) {
-      setTimeLeft(duration)
-      setIsCompleted(false)
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
       return
     }
 
-    const interval = setInterval(() => {
+    // Prevent stacking
+    if (intervalRef.current) return
+
+    intervalRef.current = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
-          clearInterval(interval)
-          setIsCompleted(true)
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current)
+            intervalRef.current = null
+          }
           onComplete?.()
           return 0
         }
@@ -39,19 +52,23 @@ export function CircularCountdown({
       })
     }, 1000)
 
-    return () => clearInterval(interval)
-  }, [isActive, duration, onComplete])
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
+    }
+
+  }, [isActive]) // 🔥 only depend on isActive
 
   return (
     <div className="flex flex-col items-center justify-center w-full">
       <div className="relative w-72 h-72 flex items-center justify-center">
-        {/* SVG Circle */}
         <svg
           className="absolute inset-0 w-full h-full"
           viewBox="0 0 200 200"
           style={{ transform: 'rotate(-90deg)' }}
         >
-          {/* Defs for gradient */}
           <defs>
             <linearGradient
               id="countdownGradient"
@@ -65,7 +82,6 @@ export function CircularCountdown({
             </linearGradient>
           </defs>
 
-          {/* Background circle */}
           <circle
             cx="100"
             cy="100"
@@ -75,7 +91,6 @@ export function CircularCountdown({
             strokeWidth="6"
           />
 
-          {/* Progress circle with gradient */}
           <circle
             cx="100"
             cy="100"
@@ -86,24 +101,14 @@ export function CircularCountdown({
             strokeDasharray={circumference}
             strokeDashoffset={strokeDashoffset}
             strokeLinecap="round"
-            className={isCompleted ? '' : 'transition-all duration-300'}
           />
         </svg>
 
-        {/* Center Content */}
         <div className="absolute flex flex-col items-center justify-center">
-          {isCompleted ? (
-            <div className="text-center">
-              <div className="text-6xl font-bold text-white">Done!</div>
-            </div>
-          ) : (
-            <div className="text-center">
-              <div className="text-8xl font-bold text-white font-mono tracking-wider">
-                {timeLeft}
-              </div>
-              <div className="text-sm text-slate-400 mt-2">seconds</div>
-            </div>
-          )}
+          <div className="text-8xl font-bold text-white font-mono tracking-wider">
+            {timeLeft}
+          </div>
+          <div className="text-sm text-slate-400 mt-2">seconds</div>
         </div>
       </div>
     </div>
