@@ -53,8 +53,9 @@ export function TradeModal({
   const [result, setResult] = useState<TradeResult | null>(null)
   const [actualPercent, setActualPercent] = useState<number | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
-  // Sync modal balance with parent
+  // Sync balance with parent
   useEffect(() => {
     setUserBalance(initialBalance ?? 0)
   }, [initialBalance])
@@ -70,6 +71,7 @@ export function TradeModal({
       setResult(null)
       setActualPercent(null)
       setIsLoading(false)
+      setErrorMessage(null)
     }
   }, [isOpen])
 
@@ -83,60 +85,76 @@ export function TradeModal({
   const handleQuickAmount = (p: number) => {
     setAmount(Math.round((userBalance ?? 0) * (p / 100)))
   }
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault()
-  if (!user || !isAuthenticated || amount === '' || amount <= 0) return
 
-  setIsLoading(true)
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!user || !isAuthenticated || amount === '' || amount <= 0) return
 
-  try {
-    // Deduct immediately
-    const newBalance = userBalance - amount
-    setUserBalance(newBalance)
-    onBalanceUpdate?.(newBalance)
+    // Prevent starting trade above balance
+    if (amount > userBalance) {
+      setErrorMessage('Insufficient balance!')
+      return
+    }
 
-    // Execute trade
-    const res = await executeTrade(
-      user.id,
-      type,
-      asset,
-      amount,
-      selected.seconds
-    )
+    setIsLoading(true)
+    setErrorMessage(null)
 
-    setTradeResultTemp(res)
-    setActualPercent(res.profitLossPercent)
+    try {
+      // Deduct immediately
+      const newBalance = userBalance - amount
+      setUserBalance(newBalance)
+      onBalanceUpdate?.(newBalance)
 
-    // ✅ Start countdown cleanly
-    setShowCountdown(true)
-    setCountdownActive(true)
+      // Execute trade
+      const res = await executeTrade(
+        user.id,
+        type,
+        asset,
+        amount,
+        selected.seconds
+      )
 
-  } catch (err) {
-    console.error(err)
-    setShowCountdown(false)
-    setCountdownActive(false)
-    setActualPercent(null)
-  } finally {
-    setIsLoading(false)
+      setTradeResultTemp(res)
+      setActualPercent(res.profitLossPercent)
+
+      // Start countdown
+      setShowCountdown(true)
+      setCountdownActive(true)
+
+    } catch (err) {
+      console.error(err)
+      setShowCountdown(false)
+      setCountdownActive(false)
+      setActualPercent(null)
+      setErrorMessage('Trade failed, please try again.')
+    } finally {
+      setIsLoading(false)
+    }
   }
-}
-
 
   const handleCountdownComplete = useCallback(() => {
     setCountdownActive(false)
-    if (tradeResultTemp) {
+
+    if (!tradeResultTemp) return
+
+    // Check if trade exceeds current balance
+    if ((tradeResultTemp.amount ?? 0) > userBalance + (tradeResultTemp.returnedAmount ?? 0)) {
+      setErrorMessage('Insufficient balance!')
       setResult(tradeResultTemp)
-      onTradeComplete?.(tradeResultTemp)
-
-      // Update balance based on trade outcome
-      const newBalance =
-        tradeResultTemp.outcome === 'WIN'
-          ? (userBalance ?? 0) + tradeResultTemp.returnedAmount
-          : userBalance ?? 0
-
-      setUserBalance(newBalance)
-      onBalanceUpdate?.(newBalance)
+      return
     }
+
+    setResult(tradeResultTemp)
+    onTradeComplete?.(tradeResultTemp)
+
+    // Update balance
+    const newBalance =
+      tradeResultTemp.outcome === 'WIN'
+        ? (userBalance ?? 0) + tradeResultTemp.returnedAmount
+        : (userBalance ?? 0) // LOSS: keep same balance (demo)
+
+    setUserBalance(newBalance)
+    onBalanceUpdate?.(newBalance)
   }, [tradeResultTemp, onTradeComplete, onBalanceUpdate, userBalance])
 
   const handleCancelTrade = () => {
@@ -151,6 +169,7 @@ const handleSubmit = async (e: React.FormEvent) => {
     setResult(null)
     setActualPercent(null)
     setAmount('')
+    setErrorMessage(null)
   }
 
   if (!isOpen) return null
@@ -204,6 +223,11 @@ const handleSubmit = async (e: React.FormEvent) => {
                   </button>
                 ))}
               </div>
+              {errorMessage && (
+                <div className="text-red-500 text-sm mt-2 font-semibold">
+                  {errorMessage}
+                </div>
+              )}
             </div>
 
             {/* Expiration */}
@@ -260,12 +284,17 @@ const handleSubmit = async (e: React.FormEvent) => {
               <>
                 <div className="space-y-3 text-center">
                   <div className={`text-3xl font-bold ${result.outcome === 'WIN' ? 'text-emerald-400' : 'text-red-400'}`}>
-                    {result.outcome === 'WIN' ? 'You Won!' : 'You Lost'}
+                    {errorMessage ? 'Trade Failed' : result.outcome === 'WIN' ? 'You Won!' : 'You Lost'}
                   </div>
                   <div className="text-slate-400">
                     Returned:{' '}
-                    <span className="font-semibold text-white">{result.returnedAmount.toLocaleString()} USDT</span>
+                    <span className="font-semibold text-white">
+                      {result.returnedAmount.toLocaleString()} USDT
+                    </span>
                   </div>
+                  {errorMessage && (
+                    <div className="text-red-500 font-semibold">{errorMessage}</div>
+                  )}
                 </div>
 
                 <button

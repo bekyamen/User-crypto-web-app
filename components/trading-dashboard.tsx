@@ -40,20 +40,25 @@ export function TradingDashboard({ tab }: TradingDashboardProps) {
 
   /* ================= FETCH USER BALANCE ================= */
   useEffect(() => {
-    if (!token) return
-    const fetchBalance = async () => {
-      try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/users/balance`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        const data = await res.json()
-        if (data.success) setUserBalance(data.data.balance)
-      } catch (err) {
-        console.error('Failed to fetch balance:', err)
+  if (!token) return
+  const fetchBalance = async () => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/users/balance`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const data = await res.json()
+      if (data.success && data.data?.demoBalance !== undefined) {
+        setUserBalance(data.data.demoBalance) // ✅ use demoBalance
+      } else {
+        setUserBalance(0) // fallback
       }
+    } catch (err) {
+      console.error('Failed to fetch balance:', err)
+      setUserBalance(0) // fallback
     }
-    fetchBalance()
-  }, [token])
+  }
+  fetchBalance()
+}, [token])
 
   /* ================= FETCH MARKETS ================= */
   useEffect(() => {
