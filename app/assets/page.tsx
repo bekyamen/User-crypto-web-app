@@ -71,7 +71,7 @@ export default function AssetsPage() {
                 Home
               </Link>
             
-              <Link href="/your-trading" className={linkClass("/your-trading")}>
+              <Link href="/trade" className={linkClass("/trade")}>
                 Trade
               </Link>
             

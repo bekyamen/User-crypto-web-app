@@ -37,6 +37,8 @@ export default function HomePage() {
         : "text-slate-400 hover:text-white"
     }`
 
+    const [balance, setBalance] = useState<number | null>(null)
+
   const { data: session } = useSession()
   const router = useRouter()
 
@@ -69,6 +71,32 @@ export default function HomePage() {
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
+
+  useEffect(() => {
+  const fetchBalance = async () => {
+    if (!session?.user) return
+    try {
+      const token = session?.accessToken // if you store JWT in session
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/me`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+      const data = await res.json()
+      if (data.success && data.data?.balance !== undefined) {
+        setBalance(Number(data.data.balance))
+      }
+    } catch (err) {
+      console.error('Failed to fetch balance:', err)
+      setBalance(0)
+    }
+  }
+
+  fetchBalance()
+}, [session])
+
+
 
   // Fetch Binance tickers
   useEffect(() => {
@@ -103,7 +131,7 @@ export default function HomePage() {
             {/* Navigation */}
             <nav className="flex items-center gap-4 sm:gap-8 text-sm flex-1 ml-8">
               <Link href="/home" className={linkClass("/home")}>Home</Link>
-              <Link href="/your-trading" className={linkClass("/your-trading")}>Trade</Link>
+              <Link href="/trade" className={linkClass("/trade")}>Trade</Link>
               <Link href="/market-report" className={linkClass("/market-report")}>Market</Link>
               <Link href="/news" className={linkClass("/news")}>News</Link>
               <Link href="/assets" className={linkClass("/assets")}>Assets</Link>
@@ -188,12 +216,17 @@ export default function HomePage() {
         {/* Balance Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
           <div className="lg:col-span-2">
-            <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg border border-slate-700/50 p-8">
+            <div className="w-[1220px] bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg border border-slate-700/50 p-8">
               <div className="flex items-start justify-between mb-8">
                 <div>
                   <p className="text-slate-400 text-sm mb-2">AVAILABLE BALANCE</p>
                   <div className="flex items-baseline gap-2">
-                    <h3 className="text-4xl font-bold text-white">{showBalance ? '0.00' : '••••'}</h3>
+                   <h3 className="text-4xl font-bold text-white">
+                    {showBalance
+                     ? balance?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
+                      : '••••'}
+                       </h3>
+
                     <span className="text-slate-400">USD</span>
                   </div>
                   <p className="text-blue-400 text-sm mt-2">Welcome back, {session?.user?.email ?? 'User'}</p>

@@ -117,7 +117,7 @@ export default function DemoPage() {
             {/* Navigation */}
             <nav className="flex items-center gap-4 sm:gap-8 text-sm flex-1 ml-8">
               <Link href="/home" className={linkClass("/home")}>Home</Link>
-              <Link href="/your-trading" className={linkClass("/your-trading")}>Trade</Link>
+              <Link href="/trade" className={linkClass("/trade")}>Trade</Link>
               <Link href="/market-report" className={linkClass("/market-report")}>Market</Link>
               <Link href="/news" className={linkClass("/news")}>News</Link>
               <Link href="/assets" className={linkClass("/assets")}>Assets</Link>
@@ -218,6 +218,5 @@ export default function DemoPage() {
     </div>
   )
 }
-
 
 

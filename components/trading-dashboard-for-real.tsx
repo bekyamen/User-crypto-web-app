@@ -4,8 +4,9 @@ import { useState, useEffect, useMemo } from 'react'
 import { CryptoChart } from '@/components/crypto-chart'
 import { ForexChart } from '@/components/forex-chart'
 import { GoldChart } from '@/components/gold-chart'
-import { TradeModal } from './trade-modal'
+import { TradeModalReall } from './trade-modal-for reall'
 import { useAuth } from '@/hooks/useAuth'
+import type { TradeResult } from '@/lib/api-two' // <-- import TradeResult
 
 interface Market {
   symbol: string
@@ -27,8 +28,10 @@ interface TradingDashboardProps {
 }
 
 export function TradingDashboard({ tab, onTrade }: TradingDashboardProps) {
-  const { user, isAuthenticated } = useAuth()
+ const { user, isAuthenticated, token } = useAuth()
+
   const [availableBalance, setAvailableBalance] = useState<number>(0)
+    const [totalTrades, setTotalTrades] = useState<number>(0) 
 
   // ---------------- States ----------------
   const [selectedPair, setSelectedPair] = useState('BTC/USDT')
@@ -97,32 +100,56 @@ export function TradingDashboard({ tab, onTrade }: TradingDashboardProps) {
   const currentChange = markets.find(m => m.symbol === selectedPair)?.change ?? 0
 
 
-   useEffect(() => {
-  if (!isAuthenticated || !user) return
+   
 
-  const fetchUserBalance = async () => {
-    try {
-      const res = await fetch('http://localhost:5000/api/admin/trades/users')
-      const data = await res.json()
+  const fetchBalance = async () => {
+  if (!token) return
 
-      const users = data?.data?.users || []
-
-      const currentUser = users.find(
-        (u: any) => String(u.id) === String(user.id)
-      )
-
-      if (currentUser) {
-        setAvailableBalance(Number(currentUser.balance))
-      } else {
-        setAvailableBalance(0)
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/user/me`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       }
-    } catch (error) {
-      console.error('Failed to fetch user balance:', error)
+    )
+
+    if (!res.ok) throw new Error()
+
+    const data = await res.json()
+
+    if (data.success) {
+      setAvailableBalance(Number(data.data.balance))
     }
+  } catch (err) {
+    console.error('Failed to fetch balance:', err)
+  }
+}
+
+
+  useEffect(() => {
+  fetchBalance()
+}, [token])
+
+
+
+
+  /* ================= HANDLE TRADE COMPLETE ================= */
+  
+
+  const handleTradeComplete = (result: TradeResult) => {
+    // Update dashboard balance instantly
+    setAvailableBalance(prev =>
+      result.outcome === 'WIN'
+        ? prev + result.returnedAmount
+        : prev - result.amount
+    )
+    // Update total trades
+    setTotalTrades(prev => prev + 1)
   }
 
-  fetchUserBalance()
-}, [isAuthenticated, user])
+
 
 
 
@@ -216,12 +243,7 @@ export function TradingDashboard({ tab, onTrade }: TradingDashboardProps) {
             )}
 
 
-            <div className="mb-4 p-3 bg-slate-800 rounded-lg">
-  <div className="text-slate-400 text-xs">Available Balance</div>
-  <div className="text-white text-lg font-semibold">
-    ${availableBalance.toFixed(2)}
-  </div>
-</div>
+           
 
 
 
@@ -257,19 +279,15 @@ export function TradingDashboard({ tab, onTrade }: TradingDashboardProps) {
   ))}
 </div>
 
+ <div className="mb-4 p-3 bg-slate-800 rounded-lg">
+  <div className="text-slate-400 text-xs">Available Balance</div>
+  <div className="text-white text-lg font-semibold">
+    ${availableBalance.toFixed(2)}
+  </div>
+</div>
 
-            <input
-              type="number"
-              value={quantity}
-              onChange={(e) => setQuantity(+e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-white"
-              disabled={!isAuthenticated || !user}
-              min={0}
-            />
 
-            <div className="mt-2 text-white text-sm">
-              Total: <span className="font-medium">{(quantity * currentPrice).toFixed(2)}</span>
-            </div>
+           
           </div>
 
           {/* Recent Trades */}
@@ -286,14 +304,17 @@ export function TradingDashboard({ tab, onTrade }: TradingDashboardProps) {
       </div>
 
       {/* ---------------- Trade Modal ---------------- */}
-      {modalOpen && (
-        <TradeModal
+     {modalOpen && (
+        <TradeModalReall
           isOpen={modalOpen}
           onClose={() => setModalOpen(false)}
           type={modalType}
           asset={{ symbol: selectedPair.split('/')[0], price: currentPrice } as any}
+          availableBalance={availableBalance} 
+          onTradeComplete={handleTradeComplete} // <-- pass callback
         />
       )}
+
     </>
   )
 }

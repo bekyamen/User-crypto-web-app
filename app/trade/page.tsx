@@ -7,7 +7,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Settings, Bell, LogOut } from 'lucide-react'
 
 import { TradingDashboard } from '@/components/trading-dashboard-for-real'
-import { TradeModal } from '@/components/trade-modal-for reall'
+import { TradeModalReall } from '@/components/trade-modal-for reall'
 import { useAuth } from '@/hooks/useAuth'
 
 export interface TradeModalData {
@@ -117,7 +117,7 @@ export default function RealPage() {
             {/* Navigation */}
             <nav className="flex items-center gap-4 sm:gap-8 text-sm flex-1 ml-8">
               <Link href="/home" className={linkClass("/home")}>Home</Link>
-              <Link href="/real" className={linkClass("/your-trading")}>Trade</Link>
+              <Link href="/trade" className={linkClass("/trade")}>Trade</Link>
               <Link href="/market-report" className={linkClass("/market-report")}>Market</Link>
               <Link href="/news" className={linkClass("/news")}>News</Link>
               <Link href="/assets" className={linkClass("/assets")}>Assets</Link>
@@ -206,7 +206,7 @@ export default function RealPage() {
       </main>
 
       {/* Trade Modal */}
-      <TradeModal
+      <TradeModalReall
         isOpen={tradeModal.isOpen}
         onClose={handleCloseTrade}
         type={tradeModal.type}
