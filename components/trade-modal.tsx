@@ -1,10 +1,10 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react'
-import { X } from 'lucide-react'
-import { CircularCountdown } from './circular-countdown'
+import { X, Eye, EyeOff, ArrowDown, ArrowUp, Zap, MessageCircle } from 'lucide-react'
 import { executeTrade, type Asset, type TradeResult } from '@/lib/api-two'
 import { useAuth } from '@/hooks/useAuth'
+import { CircularCountdown } from './circular-countdown'
 
 interface TradeModalProps {
   isOpen: boolean
@@ -30,7 +30,7 @@ const EXPIRATION_OPTIONS: ExpirationOption[] = [
   { label: '90s', seconds: 90, percent: 18, min: 20_000, max: 50_000 },
   { label: '120s', seconds: 120, percent: 21, min: 50_000, max: 90_000 },
   { label: '180s', seconds: 180, percent: 24, min: 90_000, max: 200_000 },
-  { label: '360s', seconds: 360, percent: 27, min: 200_000, max: 1_000_000 }
+  { label: '360s', seconds: 360, percent: 27, min: 200_000, max: 1_000_000 },
 ]
 
 export function TradeModal({
@@ -40,7 +40,7 @@ export function TradeModal({
   asset,
   userBalance: initialBalance,
   onBalanceUpdate,
-  onTradeComplete
+  onTradeComplete,
 }: TradeModalProps) {
   const { user, isAuthenticated } = useAuth()
 
@@ -51,11 +51,11 @@ export function TradeModal({
   const [countdownActive, setCountdownActive] = useState(false)
   const [tradeResultTemp, setTradeResultTemp] = useState<TradeResult | null>(null)
   const [result, setResult] = useState<TradeResult | null>(null)
-  const [actualPercent, setActualPercent] = useState<number | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [showBalance, setShowBalance] = useState(true)
 
-  // Sync balance with parent
+  // Sync with parent balance
   useEffect(() => {
     setUserBalance(initialBalance ?? 0)
   }, [initialBalance])
@@ -69,19 +69,18 @@ export function TradeModal({
       setCountdownActive(false)
       setTradeResultTemp(null)
       setResult(null)
-      setActualPercent(null)
       setIsLoading(false)
       setErrorMessage(null)
     }
   }, [isOpen])
 
-  const estimatedIncome =
-    amount !== '' && actualPercent !== null
-      ? amount + amount * (actualPercent / 100)
-      : amount !== ''
-        ? amount + amount * (selected.percent / 100)
-        : null
+  // Estimated profit (±)
+  const estimatedProfit =
+    amount !== ''
+      ? amount * (selected.percent / 100)
+      : null
 
+  // Quick % buttons
   const handleQuickAmount = (p: number) => {
     setAmount(Math.round((userBalance ?? 0) * (p / 100)))
   }
@@ -90,7 +89,6 @@ export function TradeModal({
     e.preventDefault()
     if (!user || !isAuthenticated || amount === '' || amount <= 0) return
 
-    // Prevent starting trade above balance
     if (amount > userBalance) {
       setErrorMessage('Insufficient balance!')
       return
@@ -100,32 +98,20 @@ export function TradeModal({
     setErrorMessage(null)
 
     try {
-      // Deduct immediately
-      const newBalance = userBalance - amount
+      // Optimistic deduction
+      const newBalance = userBalance - estimatedProfit!
       setUserBalance(newBalance)
       onBalanceUpdate?.(newBalance)
 
       // Execute trade
-      const res = await executeTrade(
-        user.id,
-        type,
-        asset,
-        amount,
-        selected.seconds
-      )
-
+      const res = await executeTrade(user.id, type, asset, amount, selected.seconds)
       setTradeResultTemp(res)
-      setActualPercent(res.profitLossPercent)
-
-      // Start countdown
       setShowCountdown(true)
       setCountdownActive(true)
-
     } catch (err) {
       console.error(err)
       setShowCountdown(false)
       setCountdownActive(false)
-      setActualPercent(null)
       setErrorMessage('Trade failed, please try again.')
     } finally {
       setIsLoading(false)
@@ -134,32 +120,24 @@ export function TradeModal({
 
   const handleCountdownComplete = useCallback(() => {
     setCountdownActive(false)
-
     if (!tradeResultTemp) return
-
-    // Check if trade exceeds current balance
-    if ((tradeResultTemp.amount ?? 0) > userBalance + (tradeResultTemp.returnedAmount ?? 0)) {
-      setErrorMessage('Insufficient balance!')
-      setResult(tradeResultTemp)
-      return
-    }
 
     setResult(tradeResultTemp)
     onTradeComplete?.(tradeResultTemp)
 
-    // Update balance
+    // Adjust balance based on WIN/LOSS
     const newBalance =
       tradeResultTemp.outcome === 'WIN'
-        ? (userBalance ?? 0) + tradeResultTemp.returnedAmount
-        : (userBalance ?? 0) // LOSS: keep same balance (demo)
+        ? userBalance + tradeResultTemp.returnedAmount
+        : userBalance - Math.abs(tradeResultTemp.returnedAmount) // subtract loss
 
     setUserBalance(newBalance)
     onBalanceUpdate?.(newBalance)
-  }, [tradeResultTemp, onTradeComplete, onBalanceUpdate, userBalance])
+  }, [tradeResultTemp, userBalance, onTradeComplete, onBalanceUpdate])
 
   const handleCancelTrade = () => {
-    if (amount && userBalance !== undefined) {
-      const refunded = (userBalance ?? 0) + (amount ?? 0)
+    if (amount) {
+      const refunded = userBalance + (amount ?? 0)
       setUserBalance(refunded)
       onBalanceUpdate?.(refunded)
     }
@@ -167,7 +145,6 @@ export function TradeModal({
     setShowCountdown(false)
     setTradeResultTemp(null)
     setResult(null)
-    setActualPercent(null)
     setAmount('')
     setErrorMessage(null)
   }
@@ -177,7 +154,7 @@ export function TradeModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
       <div className="w-full max-w-md overflow-hidden rounded-2xl border border-blue-900 bg-gradient-to-b from-[#0b1d33] to-[#050b18] shadow-2xl">
-        
+
         {/* HEADER */}
         <div className="flex items-center justify-between border-b border-blue-900 bg-[#050b18] p-5">
           <div>
@@ -185,7 +162,7 @@ export function TradeModal({
             <div className="text-sm text-slate-400 mt-1">
               Balance:{' '}
               <span className="font-semibold text-emerald-400">
-                {(userBalance ?? 0).toLocaleString()} USDT
+                {showBalance ? userBalance.toLocaleString() : '••••'} USDT
               </span>
             </div>
           </div>
@@ -205,9 +182,7 @@ export function TradeModal({
               <input
                 type="number"
                 value={amount}
-                onChange={(e) =>
-                  e.target.value === '' ? setAmount('') : setAmount(Number(e.target.value))
-                }
+                onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
                 className="no-spinner w-full rounded-lg border border-blue-900 bg-[#08162b] px-4 py-3 text-white focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/30"
                 placeholder="Enter amount"
               />
@@ -224,9 +199,7 @@ export function TradeModal({
                 ))}
               </div>
               {errorMessage && (
-                <div className="text-red-500 text-sm mt-2 font-semibold">
-                  {errorMessage}
-                </div>
+                <div className="text-red-500 text-sm mt-2 font-semibold">{errorMessage}</div>
               )}
             </div>
 
@@ -246,18 +219,18 @@ export function TradeModal({
                     }`}
                   >
                     <div className="text-sm font-bold text-white">{opt.label}</div>
-                    <div className="text-xs text-cyan-400">+{actualPercent ?? opt.percent}%</div>
+                    <div className="text-xs text-cyan-400">+{opt.percent}%</div>
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Estimated Income */}
+            {/* Estimated Profit */}
             <div className="rounded-xl border border-blue-900 bg-[#08162b] p-4">
               <div className="flex justify-between text-sm text-slate-400">
-                <span>Estimated Income</span>
+                <span>Estimated Profit</span>
                 <span className="font-bold text-emerald-400">
-                  {estimatedIncome ? `${estimatedIncome.toLocaleString()} USDT` : '--'}
+                  {estimatedProfit ? `${estimatedProfit.toLocaleString()} USDT` : '--'}
                 </span>
               </div>
             </div>
@@ -282,19 +255,14 @@ export function TradeModal({
             {/* Result */}
             {result && (
               <>
-                <div className="space-y-3 text-center">
-                  <div className={`text-3xl font-bold ${result.outcome === 'WIN' ? 'text-emerald-400' : 'text-red-400'}`}>
-                    {errorMessage ? 'Trade Failed' : result.outcome === 'WIN' ? 'You Won!' : 'You Lost'}
-                  </div>
-                  <div className="text-slate-400">
-                    Returned:{' '}
-                    <span className="font-semibold text-white">
-                      {result.returnedAmount.toLocaleString()} USDT
-                    </span>
-                  </div>
-                  {errorMessage && (
-                    <div className="text-red-500 font-semibold">{errorMessage}</div>
-                  )}
+                <div className={`text-3xl font-bold ${result.outcome === 'WIN' ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {result.outcome === 'WIN' ? 'You Won!' : 'You Lost'}
+                </div>
+                <div className="text-slate-400">
+                  Profit:{' '}
+                  <span className="font-semibold text-white">
+                    {Math.abs(result.returnedAmount).toLocaleString()} USDT
+                  </span>
                 </div>
 
                 <button
