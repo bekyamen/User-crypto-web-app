@@ -163,12 +163,12 @@ export function TradeModal({
         <div className="flex items-center justify-between border-b border-blue-900 bg-[#050b18] p-5">
           <div>
             <h2 className="text-xl font-bold text-white">{asset.symbol}/USDT</h2>
-            <div className="text-sm text-slate-400 mt-1">
+            {/* <div className="text-sm text-slate-400 mt-1">
               Balance:{' '}
               <span className="font-semibold text-emerald-400">
                 {showBalance ? userBalance.toLocaleString() : '••••'} USDT
               </span>
-            </div>
+            </div> */}
           </div>
           <button
             onClick={showCountdown ? handleCancelTrade : onClose}
@@ -202,6 +202,7 @@ export function TradeModal({
                   </button>
                 ))}
               </div>
+
               {errorMessage && (
                 <div className="text-red-500 text-sm mt-2 font-semibold">{errorMessage}</div>
               )}

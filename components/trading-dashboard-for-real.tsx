@@ -68,7 +68,7 @@ const fetchUserTrades = useCallback(async () => {
 
   try {
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/trades/user/${user.id}`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/trade-sim/user/${user.id}`,
       {
         headers: { Authorization: `Bearer ${token}` },
       }
@@ -84,6 +84,10 @@ const fetchUserTrades = useCallback(async () => {
     console.error('Failed to fetch trades:', err)
   }
 }, [token, user?.id])
+
+  useEffect(() => {
+    fetchUserTrades()
+  }, [fetchUserTrades])
 
   
 
@@ -141,6 +145,9 @@ const fetchUserTrades = useCallback(async () => {
   const currentPrice = markets.find(m => m.symbol === selectedPair)?.price ?? 0
   const currentChange = markets.find(m => m.symbol === selectedPair)?.change ?? 0
 
+
+  
+
   /* ================= HANDLE TRADE COMPLETE ================= */
 
 
@@ -157,6 +164,8 @@ const handleTradeComplete = async () => {
 
 
 
+
+
   /* ================= ASSET FOR MODAL ================= */
   const assetForModal: Asset = {
     symbol: selectedPair.split('/')[0],
@@ -164,6 +173,7 @@ const handleTradeComplete = async () => {
     price: currentPrice,
     assetClass: tab,
   }
+  
 
   return (
     <>
