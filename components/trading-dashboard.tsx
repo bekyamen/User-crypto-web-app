@@ -1,5 +1,3 @@
-
-
 'use client'
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
@@ -39,26 +37,28 @@ export function TradingDashboard({ tab }: TradingDashboardProps) {
   const [searchQuery, setSearchQuery] = useState('')
 
   /* ================= FETCH USER BALANCE ================= */
-  useEffect(() => {
+  const fetchBalance = useCallback(async () => {
   if (!token) return
-  const fetchBalance = async () => {
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/users/balance`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      const data = await res.json()
-      if (data.success && data.data?.demoBalance !== undefined) {
-        setUserBalance(data.data.demoBalance) // ✅ use demoBalance
-      } else {
-        setUserBalance(0) // fallback
-      }
-    } catch (err) {
-      console.error('Failed to fetch balance:', err)
-      setUserBalance(0) // fallback
+
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/users/balance`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+
+    const data = await res.json()
+
+    if (data.success && data.data?.demoBalance !== undefined) {
+      setUserBalance(data.data.demoBalance)
     }
+  } catch (err) {
+    console.error('Failed to fetch balance:', err)
   }
-  fetchBalance()
 }, [token])
+
+useEffect(() => {
+  fetchBalance()
+}, [fetchBalance])
+
 
   /* ================= FETCH MARKETS ================= */
   useEffect(() => {
@@ -115,14 +115,14 @@ export function TradingDashboard({ tab }: TradingDashboardProps) {
   const currentChange = markets.find(m => m.symbol === selectedPair)?.change ?? 0
 
   /* ================= HANDLE TRADE COMPLETE ================= */
-  const handleTradeComplete = (result: TradeResult) => {
-    // Update dashboard balance instantly
-    setUserBalance(prev =>
-      result.outcome === 'WIN' ? prev + result.returnedAmount : prev - result.amount
-    )
-    // Update total trades
-    setTotalTrades(prev => prev + 1)
-  }
+  const handleTradeComplete = async () => {
+  setTotalTrades(prev => prev + 1)
+
+  // 🔥 Always re-fetch real balance from backend
+  await fetchBalance()
+}
+
+
 
   return (
     <>

@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react'
-import { X, Eye, EyeOff, ArrowDown, ArrowUp, Zap, MessageCircle } from 'lucide-react'
+import { X } from 'lucide-react'
 import { executeTrade, type Asset, type TradeResult } from '@/lib/api-two'
 import { useAuth } from '@/hooks/useAuth'
 import { CircularCountdown } from './circular-countdown'
@@ -74,17 +74,14 @@ export function TradeModal({
     }
   }, [isOpen])
 
-  // Estimated profit (±)
-  const estimatedProfit =
-    amount !== ''
-      ? amount * (selected.percent / 100)
-      : null
+  // Estimated profit
+  const estimatedProfit = amount !== '' ? amount * (selected.percent / 100) : null
 
-  // Quick % buttons
   const handleQuickAmount = (p: number) => {
     setAmount(Math.round((userBalance ?? 0) * (p / 100)))
   }
 
+  // Execute trade
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!user || !isAuthenticated || amount === '' || amount <= 0) return
@@ -98,16 +95,18 @@ export function TradeModal({
     setErrorMessage(null)
 
     try {
-      // Optimistic deduction
-      const newBalance = userBalance - estimatedProfit!
-      setUserBalance(newBalance)
-      onBalanceUpdate?.(newBalance)
-
-      // Execute trade
       const res = await executeTrade(user.id, type, asset, amount, selected.seconds)
+
+      // Store temporary result
       setTradeResultTemp(res)
       setShowCountdown(true)
       setCountdownActive(true)
+
+      // Instant frontend preview: update balance immediately using backend's newBalance
+      if (res.newBalance !== undefined) {
+        setUserBalance(res.newBalance)
+        onBalanceUpdate?.(res.newBalance)
+      }
     } catch (err) {
       console.error(err)
       setShowCountdown(false)
@@ -118,29 +117,20 @@ export function TradeModal({
     }
   }
 
+  // Handle countdown complete
   const handleCountdownComplete = useCallback(() => {
-    setCountdownActive(false)
-    if (!tradeResultTemp) return
+  setCountdownActive(false)
+  if (!tradeResultTemp) return
 
-    setResult(tradeResultTemp)
-    onTradeComplete?.(tradeResultTemp)
+  setResult(tradeResultTemp)
+  onTradeComplete?.(tradeResultTemp)
 
-    // Adjust balance based on WIN/LOSS
-    const newBalance =
-      tradeResultTemp.outcome === 'WIN'
-        ? userBalance + tradeResultTemp.returnedAmount
-        : userBalance - Math.abs(tradeResultTemp.returnedAmount) // subtract loss
+  // ❌ Do NOT update balance here
+  // It was already updated instantly when trade was placed
+}, [tradeResultTemp, onTradeComplete])
 
-    setUserBalance(newBalance)
-    onBalanceUpdate?.(newBalance)
-  }, [tradeResultTemp, userBalance, onTradeComplete, onBalanceUpdate])
 
   const handleCancelTrade = () => {
-    if (amount) {
-      const refunded = userBalance + (amount ?? 0)
-      setUserBalance(refunded)
-      onBalanceUpdate?.(refunded)
-    }
     setCountdownActive(false)
     setShowCountdown(false)
     setTradeResultTemp(null)
@@ -154,7 +144,6 @@ export function TradeModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
       <div className="w-full max-w-md overflow-hidden rounded-2xl border border-blue-900 bg-gradient-to-b from-[#0b1d33] to-[#050b18] shadow-2xl">
-
         {/* HEADER */}
         <div className="flex items-center justify-between border-b border-blue-900 bg-[#050b18] p-5">
           <div>
@@ -245,14 +234,12 @@ export function TradeModal({
           </form>
         ) : (
           <div className="space-y-6 p-6 text-center">
-            {/* Countdown */}
             <CircularCountdown
               duration={selected.seconds}
               isActive={countdownActive}
               onComplete={handleCountdownComplete}
             />
 
-            {/* Result */}
             {result && (
               <>
                 <div className={`text-3xl font-bold ${result.outcome === 'WIN' ? 'text-emerald-400' : 'text-red-400'}`}>
@@ -261,7 +248,7 @@ export function TradeModal({
                 <div className="text-slate-400">
                   Profit:{' '}
                   <span className="font-semibold text-white">
-                    {Math.abs(result.returnedAmount).toLocaleString()} USDT
+                    {Math.abs(result.profitLossAmount ?? 0).toLocaleString()} USDT
                   </span>
                 </div>
 
