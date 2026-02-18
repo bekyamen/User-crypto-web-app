@@ -1,14 +1,28 @@
 'use client'
 
-import { useState } from 'react'
+
 import { usePathname } from 'next/navigation'
 import { ChevronRight, Copy, Share2, AlertCircle, CheckCircle, Clock, Trophy, TrendingUp, TrendingDown, Star } from 'lucide-react'
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
+import { useSession } from 'next-auth/react'
+
+
+
 
 export default function SettingsPage() {
+
+  
+
+  
   const pathname = usePathname()
   const activeTab = pathname === '/settings' ? 'dashboard' : pathname.includes('identity') ? 'identity' : pathname.includes('history') ? 'history' : 'security'
   const [copiedCode, setCopiedCode] = useState(false)
+
+
+  const { data: session } = useSession()
+const [balance, setBalance] = useState<number>(0)
+
 
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: '📊', href: '/settings' },
@@ -61,6 +75,40 @@ export default function SettingsPage() {
     setCopiedCode(true)
     setTimeout(() => setCopiedCode(false), 2000)
   }
+
+
+  useEffect(() => {
+  const fetchBalance = async () => {
+    if (!session?.user) return
+
+    try {
+      const token = (session as any)?.accessToken
+
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/user/me`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
+
+      const data = await res.json()
+
+      if (data.success && data.data?.balance !== undefined) {
+        setBalance(Number(data.data.balance))
+      }
+    } catch (error) {
+      console.error('Failed to fetch balance:', error)
+      setBalance(0)
+    }
+  }
+
+  fetchBalance()
+}, [session])
+
+
+
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
@@ -136,12 +184,23 @@ export default function SettingsPage() {
                   <h2 className="text-lg font-semibold text-white">Portfolio Performance</h2>
                 </div>
 
+
                 <div className="space-y-6">
                   <div>
-                    <p className="text-slate-400 text-sm mb-2">Total P&L</p>
-                    <p className="text-3xl font-bold text-white">$0.00</p>
-                    <p className="text-slate-400 text-xs">0 Trades 0 coins</p>
-                  </div>
+  <p className="text-slate-400 text-sm mb-2">Total Balance</p>
+
+  <p className="text-3xl font-bold text-white">
+    ${balance.toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}
+  </p>
+
+  <p className="text-slate-400 text-xs">
+    Available Funds
+  </p>
+</div>
+
 
                   <div className="grid grid-cols-3 gap-4">
                     {[{ period: '24h', value: '$0.00' }, { period: '7d', value: '$0.00' }, { period: '30d', value: '$0.00' }].map((item, idx) => (

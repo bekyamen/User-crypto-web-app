@@ -26,6 +26,8 @@ export default function AssetsPage() {
   const avatarLetter = firstName.charAt(0).toUpperCase()
 
   const router = useRouter()
+  const [balance, setBalance] = useState<number>(0)
+
   const [showBalance, setShowBalance] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
 
@@ -41,6 +43,39 @@ export default function AssetsPage() {
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
+
+  useEffect(() => {
+  const fetchBalance = async () => {
+    if (!session?.user) return
+
+    try {
+      const token = (session as any)?.accessToken
+
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/user/me`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
+
+      const data = await res.json()
+
+      if (data.success && data.data?.balance !== undefined) {
+        setBalance(Number(data.data.balance))
+      }
+    } catch (err) {
+      console.error("Failed to fetch balance:", err)
+      setBalance(0)
+    }
+  }
+
+  fetchBalance()
+}, [session])
+
+
 
   const handleSignOut = () => {
     signOut({ redirect: false })
@@ -161,10 +196,18 @@ export default function AssetsPage() {
                 <p className="text-slate-400 text-sm mb-2">PORTFOLIO</p>
                 <p className="text-slate-400 text-xs mb-4">Total Assets</p>
                 <div className="flex items-baseline gap-2 mb-4">
-                  <h3 className="text-5xl font-bold text-white">{showBalance ? '0.00' : '••••'}</h3>
+                  <h3 className="text-5xl font-bold text-white">
+  {showBalance
+    ? balance.toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })
+    : '••••'}
+</h3>
+
                   <span className="text-slate-400">USD</span>
                 </div>
-                <p className="text-slate-400 text-xs">≈ 0.00000000 BTC</p>
+               
               </div>
               <button
                 onClick={() => setShowBalance(!showBalance)}
@@ -176,24 +219,23 @@ export default function AssetsPage() {
 
             {/* P&L */}
             <div className="mb-6 pb-6 border-b border-slate-700/50">
-              <p className="text-slate-400 text-xs mb-2">Today's P&L</p>
-              <div className="flex items-baseline gap-2">
-                <span className="text-green-400 font-semibold">+0.04 USD</span>
-                <span className="text-green-400 text-sm">(+0.02%)</span>
-              </div>
+             
+             
             </div>
 
             {/* Available Balances */}
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div>
-                <p className="text-slate-400 text-xs mb-2">Available</p>
-                <p className="text-white font-bold text-lg">0.00 USD</p>
-                <p className="text-slate-400 text-xs mt-1">Can trade & withdraw</p>
+               
+                
+
+                
               </div>
               <div>
-                <p className="text-white text-xs mb-2">In Use</p>
-                <p className="text-white font-bold text-lg">0.00 USD</p>
-                <p className="text-slate-400 text-xs mt-1">USD liquidity from deposits</p>
+                
+                
+
+                
               </div>
             </div>
 
