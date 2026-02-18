@@ -6,8 +6,8 @@ import { useRouter, usePathname } from "next/navigation"
 import { useState, useRef, useEffect } from 'react'
 import { Settings, Bell, LogOut } from 'lucide-react'
 
-import { TradingDashboard } from '@/components/trading-dashboard-for-real'
-import { TradeModalReall } from '@/components/trade-modal-for reall'
+import { ReallTradingDashboard } from '@/components/trading-dashboard-for-real'
+import { ReallTradeModal } from '@/components/trade-modal-for reall'
 import { useAuth } from '@/hooks/useAuth'
 
 export interface TradeModalData {
@@ -21,7 +21,7 @@ export interface TradeModalData {
   }
 }
 
-export default function RealPage() {
+export default function ReallPage() {
   const pathname = usePathname()
   const router = useRouter()
   const { user, isLoading } = useAuth()
@@ -135,7 +135,7 @@ export default function RealPage() {
               <div className="relative" ref={notificationRef}>
                 <button
                   onClick={(e) => {
-                    e.stopPropagation()
+                    e.stopPropagation() // prevent document click from immediately closing
                     setShowNotifications(!showNotifications)
                   }}
                   className="p-2 hover:bg-slate-800/50 rounded-lg transition text-slate-400 hover:text-white relative"
@@ -163,11 +163,14 @@ export default function RealPage() {
               </div>
 
               <button
-                onClick={handleSignOut}
-                className="p-2 hover:bg-slate-800/50 rounded-lg transition text-red-500 hover:text-red-400"
-              >
-                <LogOut size={20} />
-              </button>
+  onClick={handleSignOut}
+  className="p-2 hover:bg-slate-800/50 rounded-lg transition text-red-500 hover:text-red-400"
+>
+  <LogOut size={20} />
+</button>
+
+
+
             </div>
           </div>
 
@@ -197,7 +200,7 @@ export default function RealPage() {
       </header>
 
       <main className="w-full px-4 sm:px-6 lg:px-8 py-8">
-        <TradingDashboard
+        <ReallTradingDashboard
           tab={activeTab}
           onTrade={(type, _userId, symbol, name, price, assetClass) =>
             handleOpenTrade(type, user.id, symbol, name, price, assetClass)
@@ -206,13 +209,14 @@ export default function RealPage() {
       </main>
 
       {/* Trade Modal */}
-      <TradeModalReall
+      <ReallTradeModal
         isOpen={tradeModal.isOpen}
         onClose={handleCloseTrade}
         type={tradeModal.type}
         asset={tradeModal.asset}
-         // ✅ force real trading here
       />
     </div>
   )
 }
+
+

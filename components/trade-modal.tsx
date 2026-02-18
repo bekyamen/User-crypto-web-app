@@ -83,51 +83,66 @@ export function TradeModal({
 
   // Execute trade
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!user || !isAuthenticated || amount === '' || amount <= 0) return
+  e.preventDefault()
+  if (!user || !isAuthenticated || amount === '' || amount <= 0) return
 
-    if (amount > userBalance) {
-      setErrorMessage('Insufficient balance!')
-      return
-    }
-
-    setIsLoading(true)
-    setErrorMessage(null)
-
-    try {
-      const res = await executeTrade(user.id, type, asset, amount, selected.seconds)
-
-      // Store temporary result
-      setTradeResultTemp(res)
-      setShowCountdown(true)
-      setCountdownActive(true)
-
-      // Instant frontend preview: update balance immediately using backend's newBalance
-      if (res.newBalance !== undefined) {
-        setUserBalance(res.newBalance)
-        onBalanceUpdate?.(res.newBalance)
-      }
-    } catch (err) {
-      console.error(err)
-      setShowCountdown(false)
-      setCountdownActive(false)
-      setErrorMessage('Trade failed, please try again.')
-    } finally {
-      setIsLoading(false)
-    }
+  if (amount > userBalance) {
+    setErrorMessage('Insufficient balance!')
+    return
   }
 
+  setIsLoading(true)
+  setErrorMessage(null)
+
+  try {
+    // 1️⃣ Execute trade
+    
+    const res = await executeTrade({
+  userId: user.id,
+  type,
+  asset,
+  amount,
+  expirationTime: selected.seconds,
+  isDemo: true, // 👈 important
+});
+
+
+    // 2️⃣ Store trade result
+    setTradeResultTemp(res)
+
+    // 3️⃣ Update balance instantly
+    if (res.newBalance !== undefined) {
+      setUserBalance(res.newBalance)
+      onBalanceUpdate?.(res.newBalance)
+    }
+
+    // 4️⃣ Now show countdown
+    setShowCountdown(true)
+    setCountdownActive(true)
+  } catch (err) {
+    console.error(err)
+    setShowCountdown(false)
+    setCountdownActive(false)
+    setErrorMessage('Trade failed, please try again.')
+  } finally {
+    setIsLoading(false)
+  }
+}
+
+
   // Handle countdown complete
-  const handleCountdownComplete = useCallback(() => {
+ const handleCountdownComplete = useCallback(() => {
   setCountdownActive(false)
+
+  // ✅ tradeResultTemp is guaranteed to exist
   if (!tradeResultTemp) return
 
   setResult(tradeResultTemp)
   onTradeComplete?.(tradeResultTemp)
 
-  // ❌ Do NOT update balance here
-  // It was already updated instantly when trade was placed
+  // ❌ No need to adjust balance here; already updated
 }, [tradeResultTemp, onTradeComplete])
+
 
 
   const handleCancelTrade = () => {

@@ -74,20 +74,31 @@ export interface StatsResponse {
 /**
  * Execute a trade
  */
-export async function executeTrade(
-  userId: string,
-  type: 'buy' | 'sell',
-  asset: Asset,
-  amount: number,
+export interface ExecuteTradeRequest {
+  userId: string
+  type: 'buy' | 'sell'
+  asset: Asset
+  amount: number
   expirationTime: number
-): Promise<TradeResult> {
+  isDemo: boolean
+}
+
+export async function executeTrade({
+  userId,
+  type,
+  asset,
+  amount,
+  expirationTime,
+  isDemo,
+}: ExecuteTradeRequest): Promise<TradeResult> {
   try {
-    console.log('[v0] Executing trade with payload:', {
+    console.log('[v1] Executing trade with payload:', {
       userId,
       type,
       asset,
       amount,
-      expirationTime
+      expirationTime,
+      isDemo
     })
 
     const response = await fetch(`${API_BASE_URL}/trade-sim`, {
@@ -100,20 +111,21 @@ export async function executeTrade(
         type,
         asset,
         amount,
-        expirationTime
+        expirationTime,
+        isDemo // 👈 send demo flag to backend
       })
     })
 
-    console.log('[v0] Trade response status:', response.status)
+    console.log('[v1] Trade response status:', response.status)
 
     if (!response.ok) {
       const errorText = await response.text()
-      console.error('[v0] API error response:', errorText)
+      console.error('[v1] API error response:', errorText)
       throw new Error(`API error: ${response.status} - ${errorText}`)
     }
 
     const data: TradeResponse = await response.json()
-    console.log('[v0] Trade executed successfully:', data)
+    console.log('[v1] Trade executed successfully:', data)
 
     if (!data.success) {
       throw new Error(data.message || 'Trade failed')
@@ -121,10 +133,11 @@ export async function executeTrade(
 
     return data.data
   } catch (error) {
-    console.error('[v0] Trade execution failed:', error)
+    console.error('[v1] Trade execution failed:', error)
     throw error
   }
 }
+
 
 /**
  * Get all trades (platform-wide)
