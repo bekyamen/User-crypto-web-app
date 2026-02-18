@@ -6,7 +6,7 @@ import { ForexChart } from '@/components/forex-chart'
 import { GoldChart } from '@/components/gold-chart'
 import { TradeModal } from './trade-modal'
 import { useAuth } from '@/hooks/useAuth'
-import type { TradeResult } from '@/lib/api-two'
+import type { TradeResult, Asset } from '@/lib/api-two'
 
 interface Market {
   symbol: string
@@ -15,12 +15,17 @@ interface Market {
   change: number
 }
 
+interface TradeWithSymbol extends TradeResult {
+  assetSymbol: string
+}
+
 interface TradingDashboardProps {
   tab: 'crypto' | 'forex' | 'gold'
 }
 
 export function TradingDashboard({ tab }: TradingDashboardProps) {
   const { user, isAuthenticated, token } = useAuth()
+  const [userTrades, setUserTrades] = useState<TradeWithSymbol[]>([])
 
   const [userBalance, setUserBalance] = useState<number>(0)
   const [totalTrades, setTotalTrades] = useState<number>(0)
@@ -33,32 +38,52 @@ export function TradingDashboard({ tab }: TradingDashboardProps) {
 
   const [modalOpen, setModalOpen] = useState(false)
   const [modalType, setModalType] = useState<'buy' | 'sell'>('buy')
-  
   const [searchQuery, setSearchQuery] = useState('')
 
   /* ================= FETCH USER BALANCE ================= */
   const fetchBalance = useCallback(async () => {
-  if (!token) return
-
-  try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/users/balance`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-
-    const data = await res.json()
-
-    if (data.success && data.data?.demoBalance !== undefined) {
-      setUserBalance(data.data.demoBalance)
+    if (!token) return
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/users/balance`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const data = await res.json()
+      if (data.success && data.data?.demoBalance !== undefined) {
+        setUserBalance(data.data.demoBalance)
+      }
+    } catch (err) {
+      console.error('Failed to fetch balance:', err)
     }
-  } catch (err) {
-    console.error('Failed to fetch balance:', err)
-  }
-}, [token])
+  }, [token])
 
-useEffect(() => {
-  fetchBalance()
-}, [fetchBalance])
+  useEffect(() => {
+    fetchBalance()
+  }, [fetchBalance])
 
+  /* ================= FETCH USER TRADES ================= */
+  const fetchUserTrades = useCallback(async () => {
+    if (!token || !user?.id) return
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/trade-sim/user/${user.id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const data = await res.json()
+      if (data.success && data.data?.trades) {
+        const parsedTrades: TradeWithSymbol[] = data.data.trades.map((t: TradeResult) => ({
+          ...t,
+          assetSymbol: t.asset.symbol, // extract symbol for easy rendering
+        }))
+        setUserTrades(parsedTrades)
+        setTotalTrades(data.data.totalTrades)
+      }
+    } catch (err) {
+      console.error('Failed to fetch user trades:', err)
+    }
+  }, [token, user])
+
+  useEffect(() => {
+    fetchUserTrades()
+  }, [fetchUserTrades])
 
   /* ================= FETCH MARKETS ================= */
   useEffect(() => {
@@ -116,13 +141,18 @@ useEffect(() => {
 
   /* ================= HANDLE TRADE COMPLETE ================= */
   const handleTradeComplete = async () => {
-  setTotalTrades(prev => prev + 1)
+    setTotalTrades(prev => prev + 1)
+    await fetchBalance()
+    await fetchUserTrades()
+  }
 
-  // 🔥 Always re-fetch real balance from backend
-  await fetchBalance()
-}
-
-
+  /* ================= ASSET FOR MODAL ================= */
+  const assetForModal: Asset = {
+    symbol: selectedPair.split('/')[0],
+    name: selectedPair.split('/')[0],
+    price: currentPrice,
+    assetClass: tab,
+  }
 
   return (
     <>
@@ -238,15 +268,22 @@ useEffect(() => {
             </div>
           </div>
 
-          {/* Recent Trades */}
-          <div className="bg-slate-900/50 border border-slate-800 rounded-lg p-4">
-            <h3 className="text-white font-semibold mb-4">Recent Trades</h3>
-            {trades.map((t, i) => (
-              <div key={i} className="flex justify-between text-xs">
-                <span className="text-white">{t.price.toFixed(2)}</span>
-                <span className="text-green-400">{t.amount.toFixed(6)}</span>
-              </div>
-            ))}
+          {/* User Recent Trades */}
+          <div className="bg-slate-900/50 border border-slate-800 rounded-lg p-4 mt-6">
+            <h3 className="text-white font-semibold mb-4">Your Recent Trades</h3>
+            {userTrades.length === 0 ? (
+              <p className="text-slate-400 text-sm">No trades yet.</p>
+            ) : (
+              userTrades.slice(0, 10).map((t) => (
+                <div key={t.tradeId} className="flex justify-between text-xs mb-1">
+                  <span className="text-white">{t.assetSymbol}</span>
+                  <span className={t.outcome === 'WIN' ? 'text-green-400' : 'text-red-400'}>
+                    {t.profitLossAmount.toFixed(2)}
+                  </span>
+                  <span className="text-slate-400">{new Date(t.completedAt).toLocaleTimeString()}</span>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
@@ -257,7 +294,7 @@ useEffect(() => {
           isOpen={modalOpen}
           onClose={() => setModalOpen(false)}
           type={modalType}
-          asset={{ symbol: selectedPair.split('/')[0], price: currentPrice } as any}
+          asset={assetForModal}
           userBalance={userBalance}
           onTradeComplete={handleTradeComplete}
         />
