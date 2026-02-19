@@ -1,10 +1,12 @@
 'use client'
 
+
 import React, { useState, useEffect, useCallback } from 'react'
 import { X } from 'lucide-react'
 import { executeTrade, type Asset, type TradeResult } from '@/lib/api-two'
 import { useAuth } from '@/hooks/useAuth'
 import { CircularCountdown } from './circular-countdown'
+
 
 interface TradeModalProps {
   isOpen: boolean
@@ -103,18 +105,26 @@ export function TradeModal({
   asset,
   amount,
   expirationTime: selected.seconds,
-  isDemo: true, // 👈 important
-});
+  isDemo: true,
+})
+
+setTradeResultTemp(res)
+
+// ✅ Only start countdown
+setShowCountdown(true)
+setCountdownActive(true)
+
 
 
     // 2️⃣ Store trade result
     setTradeResultTemp(res)
 
     // 3️⃣ Update balance instantly
-    if (res.newBalance !== undefined) {
-      setUserBalance(res.newBalance)
-      onBalanceUpdate?.(res.newBalance)
-    }
+    
+    // if (res.newBalance !== undefined) {
+    //   setUserBalance(res.newBalance)
+    //   onBalanceUpdate?.(res.newBalance)
+    // }
 
     // 4️⃣ Now show countdown
     setShowCountdown(true)
@@ -134,14 +144,19 @@ export function TradeModal({
  const handleCountdownComplete = useCallback(() => {
   setCountdownActive(false)
 
-  // ✅ tradeResultTemp is guaranteed to exist
   if (!tradeResultTemp) return
+
+  // ✅ NOW update balance (after countdown)
+  if (tradeResultTemp.newBalance !== undefined) {
+    setUserBalance(tradeResultTemp.newBalance)
+    onBalanceUpdate?.(tradeResultTemp.newBalance)
+  }
 
   setResult(tradeResultTemp)
   onTradeComplete?.(tradeResultTemp)
 
-  // ❌ No need to adjust balance here; already updated
 }, [tradeResultTemp, onTradeComplete])
+
 
 
 
@@ -163,12 +178,12 @@ export function TradeModal({
         <div className="flex items-center justify-between border-b border-blue-900 bg-[#050b18] p-5">
           <div>
             <h2 className="text-xl font-bold text-white">{asset.symbol}/USDT</h2>
-            {/* <div className="text-sm text-slate-400 mt-1">
+            <div className="text-sm text-slate-400 mt-1">
               Balance:{' '}
               <span className="font-semibold text-emerald-400">
                 {showBalance ? userBalance.toLocaleString() : '••••'} USDT
               </span>
-            </div> */}
+            </div>
           </div>
           <button
             onClick={showCountdown ? handleCancelTrade : onClose}

@@ -300,7 +300,7 @@ export default function HomePage() {
                       </td>
                       <td className="px-6 py-4">
                         <button
-                          onClick={() => router.push(`/demo?pair=${coin.symbol}`)}
+                          onClick={() => router.push(`/trade?pair=${coin.symbol}`)}
                           className="px-3 py-1 bg-blue-500 hover:bg-blue-600 rounded text-sm transition"
                         >
                           Trade
