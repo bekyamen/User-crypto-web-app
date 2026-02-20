@@ -269,7 +269,7 @@ export function TradingDashboard({ tab }: TradingDashboardProps) {
           </div>
 
           {/* User Recent Trades */}
-          <div className="bg-slate-900/50 border border-slate-800 rounded-lg p-4 mt-6">
+           <div className="bg-slate-900/50 border border-slate-800 rounded-lg p-4 mt-6">
             <h3 className="text-white font-semibold mb-4">Your Recent Trades</h3>
             {userTrades.length === 0 ? (
               <p className="text-slate-400 text-sm">No trades yet.</p>
@@ -278,8 +278,9 @@ export function TradingDashboard({ tab }: TradingDashboardProps) {
                 <div key={t.tradeId} className="flex justify-between text-xs mb-1">
                   <span className="text-white">{t.assetSymbol}</span>
                   <span className={t.outcome === 'WIN' ? 'text-green-400' : 'text-red-400'}>
-                    {t.profitLossAmount.toFixed(2)}
-                  </span>
+  {t.profitLossAmount !== null ? t.profitLossAmount.toFixed(2) : '—'}
+</span>
+
                   <span className="text-slate-400">{new Date(t.completedAt).toLocaleTimeString()}</span>
                 </div>
               ))
