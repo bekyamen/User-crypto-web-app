@@ -185,12 +185,15 @@ setCountdownActive(true)
               </span>
             </div>
           </div>
-          <button
-            onClick={showCountdown ? handleCancelTrade : onClose}
-            className="text-slate-400 hover:text-white"
-          >
-            <X />
-          </button>
+         {/* Updated: disable/hide X during countdown */}
+{!countdownActive && (
+  <button
+    onClick={onClose}
+    className="text-slate-400 hover:text-white"
+  >
+    <X />
+  </button>
+)}
         </div>
 
         {!showCountdown ? (
