@@ -20,7 +20,8 @@ export default function DepositPage() {
   const [error, setError] = useState<string | null>(null)
 
   // Deposit form state
-  const [amount, setAmount] = useState<number>(0)
+  // Deposit form state
+const [amount, setAmount] = useState<string>('') // <-- empty string
   const [transactionHash, setTransactionHash] = useState('')
   const [proofFile, setProofFile] = useState<File | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -79,7 +80,7 @@ export default function DepositPage() {
       formData.append('proofImage', proofFile)
 
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/user/deposit/request`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/user/deposit/create`,
         {
           method: 'POST',
           headers: {
@@ -92,7 +93,7 @@ export default function DepositPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.message || 'Deposit failed')
       setSuccess('Deposit request submitted successfully!')
-      setAmount(0)
+      setAmount('')
       setTransactionHash('')
       setProofFile(null)
     } catch (err) {
@@ -169,11 +170,12 @@ export default function DepositPage() {
         <div className="mt-6 space-y-4">
           <label className="text-sm text-slate-400">Amount</label>
           <input
-            type="number"
-            value={amount}
-            onChange={(e) => setAmount(Number(e.target.value))}
-            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-sm"
-          />
+  type="number"
+  placeholder="Enter deposit amount" // <-- helps user see they can type
+  value={amount}
+  onChange={(e) => setAmount(e.target.value)}
+  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-sm"
+/>
 
           <label className="text-sm text-slate-400">Deposit Adress</label>
           <input
