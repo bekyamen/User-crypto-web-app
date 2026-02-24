@@ -131,19 +131,20 @@ const [amount, setAmount] = useState<string>('') // <-- empty string
         {success && <p className="text-green-500">{success}</p>}
 
         {/* QR Image */}
-        <div className="w-full h-96 bg-gray-800 rounded-lg flex items-center justify-center mt-4">
-          {loadingWallet ? (
-            <p className="text-gray-400 text-lg">Loading QR Code...</p>
-          ) : walletData?.qrImage ? (
-            <img
-              src={walletData.qrImage}
-              alt={`${walletData.coin} QR Code`}
-              className="w-full h-full object-contain"
-            />
-          ) : (
-            <p className="text-gray-400">No QR code available</p>
-          )}
-        </div>
+        {/* QR Image */}
+<div className="w-full h-96 bg-white rounded-lg flex items-center justify-center mt-4 border border-slate-300">
+  {loadingWallet ? (
+    <p className="text-gray-500 text-lg">Loading QR Code...</p>
+  ) : walletData?.qrImage ? (
+    <img
+      src={walletData.qrImage}
+      alt={`${walletData.coin} QR Code`}
+      className="w-full h-full object-contain p-4"
+    />
+  ) : (
+    <p className="text-gray-500">No QR code available</p>
+  )}
+</div>
 
         {/* Wallet Address */}
         {walletData?.address && (
