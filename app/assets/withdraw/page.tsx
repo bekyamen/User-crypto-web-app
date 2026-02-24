@@ -1,291 +1,318 @@
 'use client'
 
-import { useState } from 'react'
-import { ChevronLeft, AlertCircle, Info, CheckCircle } from 'lucide-react'
-import Link from 'next/link'
+import { useEffect, useState } from 'react'
+import { AlertCircle, CheckCircle } from 'lucide-react'
+import { useSession } from 'next-auth/react'
+import { useAuth } from '@/hooks/useAuth'
 
-interface WithdrawFormState {
-  selectedCoin: string
-  selectedNetwork: string
-  withdrawAddress: string
-  amount: string
-  loading: boolean
-  error: string | null
-  success: string | null
+interface WithdrawHistoryItem {
+  id: string
+  coin: string
+  network: string
+  address: string
+  amount: number
+  status: string
+  createdAt: string
+}
+
+interface NetworkInfo {
+  value: string
+  label: string
+  description: string
+  fee: number // Added fee as number for calculation
+}
+
+// =============================
+// Withdraw networks configuration
+// =============================
+const networks: Record<string, NetworkInfo[]> = {
+  BTC: [
+    {
+      value: 'BTC',
+      label: 'Bitcoin',
+      description: 'Bitcoin Network • Fee: 0.0005 BTC',
+      fee: 0.0005,
+    },
+  ],
+  ETH: [
+    {
+      value: 'ERC20',
+      label: 'Ethereum (ERC20)',
+      description: 'Ethereum Network • Fee: 0.005 ETH',
+      fee: 0.005,
+    },
+  ],
+  USDT: [
+    {
+      value: 'TRC20',
+      label: 'TRON (TRC20)',
+      description: 'TRON Network • Fee: 1 USDT',
+      fee: 1,
+    },
+    {
+      value: 'ERC20',
+      label: 'Ethereum (ERC20)',
+      description: 'Ethereum Network • Fee: 5 USDT',
+      fee: 5,
+    },
+  ],
 }
 
 export default function WithdrawPage() {
-  const [formState, setFormState] = useState<WithdrawFormState>({
-    selectedCoin: 'BTC',
-    selectedNetwork: 'Bitcoin',
-    withdrawAddress: '',
-    amount: '',
-    loading: false,
-    error: null,
-    success: null,
-  })
+  const { token } = useAuth()
+  const { data: session } = useSession()
 
-  const coins = ['BTC', 'ETH', 'USDT', 'XRP', 'BNB']
-  const balances: Record<string, number> = {
-    BTC: 0,
-    ETH: 0,
-    USDT: 0,
-    XRP: 0,
-    BNB: 0,
+  const [balance, setBalance] = useState<number>(0)
+  const [selectedCoin, setSelectedCoin] = useState<'BTC' | 'ETH' | 'USDT'>('BTC')
+  const [selectedNetwork, setSelectedNetwork] = useState<NetworkInfo>(networks['BTC'][0])
+  const [address, setAddress] = useState('')
+  const [amount, setAmount] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
+  const [history, setHistory] = useState<WithdrawHistoryItem[]>([])
+  const [loadingHistory, setLoadingHistory] = useState(false)
+
+  // =============================
+  // Fetch User Balance
+  // =============================
+  useEffect(() => {
+    const fetchBalance = async () => {
+      if (!session?.user) return
+      try {
+        const token = (session as any)?.accessToken
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        const data = await res.json()
+        if (data.success && data.data?.balance !== undefined) {
+          setBalance(Number(data.data.balance))
+        }
+      } catch (err) {
+        console.error('Failed to fetch balance:', err)
+        setBalance(0)
+      }
+    }
+    fetchBalance()
+  }, [session])
+
+  // =============================
+  // Fetch Withdrawal History
+  // =============================
+  const fetchHistory = async () => {
+    if (!token) return
+    try {
+      setLoadingHistory(true)
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/withdraw/my`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.message)
+      setHistory(data.data || [])
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load history')
+    } finally {
+      setLoadingHistory(false)
+    }
   }
 
-  const minWithdrawals: Record<string, number> = {
-    BTC: 0.001,
-    ETH: 0.05,
-    USDT: 10,
-    XRP: 20,
-    BNB: 0.05,
+  useEffect(() => {
+    fetchHistory()
+  }, [token])
+
+  // =============================
+  // Handle Withdraw
+  // =============================
+  const handleWithdraw = async () => {
+    if (!token) return
+    if (!address || !amount) {
+      setError('Please fill all fields')
+      return
+    }
+
+    try {
+      setLoading(true)
+      setError(null)
+      setSuccess(null)
+
+      // Fetch real balance
+      const balanceRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const balanceData = await balanceRes.json()
+      if (!balanceRes.ok || !balanceData.success) throw new Error(balanceData.message || 'Failed to verify balance')
+
+      const realBalance = Number(balanceData.data.balance)
+      if (Number(amount) > realBalance) {
+        setError('Insufficient balance')
+        setBalance(realBalance)
+        return
+      }
+
+      // Withdraw request
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/withdraw`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          coin: selectedCoin,
+          network: selectedNetwork.value,
+          address,
+          amount: Number(amount),
+        }),
+      })
+
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.message || 'Withdrawal failed')
+
+      setSuccess('Withdrawal request submitted successfully!')
+      setAddress('')
+      setAmount('')
+      setBalance(realBalance - Number(amount))
+      fetchHistory()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Withdrawal failed')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const networks: Record<string, string> = {
-    BTC: 'Bitcoin',
-    ETH: 'Ethereum',
-    USDT: 'Ethereum',
-    XRP: 'XRP Ledger',
-    BNB: 'BNB Chain',
-  }
+  // =============================
+  // Update network when coin changes
+  // =============================
+  useEffect(() => {
+    setSelectedNetwork(networks[selectedCoin][0])
+  }, [selectedCoin])
 
-  const setSelectedCoin = (coin: string) => {
-    setFormState((prevState) => ({
-      ...prevState,
-      selectedCoin: coin,
-    }))
-  }
-
-  const setSelectedNetwork = (network: string) => {
-    setFormState((prevState) => ({
-      ...prevState,
-      selectedNetwork: network,
-    }))
-  }
-
-  const setWithdrawAddress = (address: string) => {
-    setFormState((prevState) => ({
-      ...prevState,
-      withdrawAddress: address,
-    }))
-  }
-
-  const setAmount = (amt: string) => {
-    setFormState((prevState) => ({
-      ...prevState,
-      amount: amt,
-    }))
-  }
-
-  const { selectedCoin, selectedNetwork, withdrawAddress, amount } = formState
+  // =============================
+  // Calculate net receive after fee
+  // =============================
+  const netReceive = amount ? Math.max(Number(amount) - selectedNetwork.fee, 0) : 0
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
-      {/* Header with Back Button */}
-      <div className="border-b border-slate-700/50 sticky top-0 z-40 bg-gradient-to-b from-slate-950 to-slate-900/80 backdrop-blur">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center gap-4">
-            <Link
-              href="/assets"
-              className="p-2 hover:bg-slate-800/50 rounded-lg transition text-slate-400 hover:text-white"
-            >
-              <ChevronLeft size={20} />
-            </Link>
-            <div>
-              <h1 className="text-white font-bold text-lg">Withdraw Crypto</h1>
-              <p className="text-slate-400 text-sm">Send digital assets to external wallet</p>
-            </div>
+    <div className="min-h-screen bg-slate-950 text-white">
+      <div className="max-w-2xl mx-auto p-6 space-y-6">
+        <h1 className="text-2xl font-bold">Withdraw Crypto</h1>
+
+        {/* Available Balance */}
+        <div className="bg-slate-800 border border-slate-700 rounded-lg p-5">
+          <p className="text-slate-400 text-sm">Available Balance</p>
+          <p className="text-3xl font-bold mt-1">${balance.toFixed(2)}</p>
+        </div>
+
+        {/* Coin Selector */}
+        <select
+          value={selectedCoin}
+          onChange={(e) => setSelectedCoin(e.target.value as 'BTC' | 'ETH' | 'USDT')}
+          className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3"
+        >
+          <option value="BTC">BTC - Bitcoin</option>
+          <option value="ETH">ETH - Ethereum</option>
+          <option value="USDT">USDT - Tether</option>
+        </select>
+
+        {/* Network Cards */}
+        <div className="mt-4 space-y-3">
+          {networks[selectedCoin].map((network) => {
+            const isSelected = selectedNetwork.value === network.value
+            return (
+              <div
+                key={network.value}
+                onClick={() => setSelectedNetwork(network)}
+                className={`cursor-pointer rounded-xl border p-4 transition-all ${
+                  isSelected
+                    ? 'bg-blue-500/10 border-blue-500 shadow-lg shadow-blue-500/20'
+                    : 'bg-slate-800 border-slate-700 hover:border-slate-500'
+                }`}
+              >
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="font-semibold">{network.label}</p>
+                    <p className="text-xs text-slate-400 mt-1">{network.description}</p>
+                  </div>
+                  {isSelected && <div className="text-blue-400 text-lg">✓</div>}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Address */}
+        <input
+          type="text"
+          placeholder="Withdrawal address"
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
+          className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3"
+        />
+
+        {/* Amount */}
+        <input
+          type="number"
+          placeholder="Amount"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3"
+        />
+
+        {/* Net Receive */}
+        {amount && (
+          <p className="text-xs text-slate-400 mt-1">
+            You will receive: {netReceive.toFixed(6)} {selectedCoin}
+          </p>
+        )}
+
+        {/* Error / Success */}
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/30 p-3 rounded-lg flex gap-2">
+            <AlertCircle size={18} className="text-red-400" />
+            <p className="text-red-300 text-sm">{error}</p>
           </div>
+        )}
+
+        {success && (
+          <div className="bg-green-500/10 border border-green-500/30 p-3 rounded-lg flex gap-2">
+            <CheckCircle size={18} className="text-green-400" />
+            <p className="text-green-300 text-sm">{success}</p>
+          </div>
+        )}
+
+        <button
+          onClick={handleWithdraw}
+          disabled={loading}
+          className="w-full bg-blue-500 hover:bg-blue-600 py-3 rounded-lg font-semibold"
+        >
+          {loading ? 'Processing...' : 'Withdraw'}
+        </button>
+
+        {/* Withdrawal History */}
+        <div className="mt-8">
+          <h2 className="text-lg font-semibold mb-4">Withdrawal History</h2>
+          {loadingHistory ? (
+            <p className="text-slate-400">Loading...</p>
+          ) : history.length === 0 ? (
+            <p className="text-slate-400">No withdrawals yet.</p>
+          ) : (
+            history.map((item) => (
+              <div
+                key={item.id}
+                className="bg-slate-800 border border-slate-700 rounded-lg p-4 mb-3"
+              >
+                <p className="font-semibold">
+                  {item.amount} {item.coin} ({item.network})
+                </p>
+                <p className="text-xs text-slate-400">{item.address}</p>
+                <p className="text-xs text-slate-400">Status: {item.status}</p>
+                <p className="text-xs text-slate-500">
+                  {new Date(item.createdAt).toLocaleString()}
+                </p>
+              </div>
+            ))
+          )}
         </div>
       </div>
-
-      {/* Main Content */}
-      <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-slate-900/50 border border-slate-700/30 rounded-xl p-6 space-y-6">
-          {/* Available Balance */}
-          <div className="bg-slate-800/50 border border-slate-700/50 rounded-lg p-4">
-            <p className="text-slate-400 text-sm mb-2">Available Balance</p>
-            <div className="flex items-baseline gap-2">
-              <p className="text-white text-3xl font-bold">{balances[formState.selectedCoin]}</p>
-              <p className="text-slate-400">{formState.selectedCoin}</p>
-            </div>
-          </div>
-
-          {/* Select Coin */}
-          <div className="space-y-3">
-            <label className="text-slate-300 text-sm">Select Coin</label>
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              {coins.map((coin) => (
-                <button
-                  key={coin}
-                  onClick={() => {
-                    setFormState((prev) => ({
-                      ...prev,
-                      selectedCoin: coin,
-                      selectedNetwork: networks[coin as keyof typeof networks],
-                    }))
-                  }}
-                  className={`px-4 py-2 rounded-lg font-semibold whitespace-nowrap transition ${
-                    formState.selectedCoin === coin
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-slate-800/50 text-slate-300 hover:text-white border border-slate-700/50'
-                  }`}
-                >
-                  {coin}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Withdrawal Network */}
-          <div className="space-y-3">
-            <label className="text-slate-300 text-sm">Withdrawal Network</label>
-            <div className="bg-slate-800/50 border border-slate-700/50 rounded-lg p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-white font-medium">{formState.selectedNetwork}</p>
-                  <p className="text-slate-400 text-xs">{formState.selectedNetwork} Network • Fee: 0.0005 {formState.selectedCoin}</p>
-                </div>
-                <span className="text-blue-400">✓</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Withdrawal Details */}
-          <div className="space-y-4">
-            <h3 className="text-slate-300 text-sm font-semibold">Withdrawal Details</h3>
-
-            {/* Address Input */}
-            <div className="space-y-2">
-              <label className="text-slate-400 text-xs">Withdrawal Address</label>
-              <input
-                type="text"
-                value={formState.withdrawAddress}
-                onChange={(e) => setFormState((prev) => ({ ...prev, withdrawAddress: e.target.value, error: null }))}
-                placeholder={`Enter ${formState.selectedCoin} address`}
-                className="w-full bg-slate-800/50 border border-slate-700/50 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
-              />
-            </div>
-
-            {/* Amount Input */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-slate-400 text-xs">Amount ({formState.selectedCoin})</label>
-                <button 
-                  onClick={() => setFormState((prev) => ({ ...prev, amount: balances[prev.selectedCoin].toString() }))}
-                  className="text-blue-400 hover:text-blue-300 text-xs font-semibold"
-                >
-                  MAX
-                </button>
-              </div>
-              <input
-                type="number"
-                value={formState.amount}
-                onChange={(e) => setFormState((prev) => ({ ...prev, amount: e.target.value, error: null }))}
-                placeholder={`Enter withdrawal amount in ${formState.selectedCoin}`}
-                className="w-full bg-slate-800/50 border border-slate-700/50 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
-              />
-            </div>
-          </div>
-
-          {/* Error Alert */}
-          {formState.error && (
-            <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 flex gap-3">
-              <AlertCircle size={20} className="text-red-400 flex-shrink-0" />
-              <p className="text-sm text-red-200">{formState.error}</p>
-            </div>
-          )}
-
-          {/* Success Alert */}
-          {formState.success && (
-            <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 flex gap-3">
-              <CheckCircle size={20} className="text-green-400 flex-shrink-0" />
-              <p className="text-sm text-green-200">{formState.success}</p>
-            </div>
-          )}
-
-          {/* Warning Alert */}
-          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 flex gap-3">
-            <AlertCircle size={20} className="text-yellow-400 flex-shrink-0" />
-            <div className="text-sm text-yellow-200">
-              <p>• Minimum withdrawal: {minWithdrawals[formState.selectedCoin]} {formState.selectedCoin}</p>
-              <p>• Double-check address and network</p>
-              <p>• Withdrawals are irreversible</p>
-            </div>
-          </div>
-
-          {/* Withdraw Button */}
-          <button 
-            onClick={async () => {
-              if (!formState.withdrawAddress) {
-                setFormState((prev) => ({ ...prev, error: 'Please enter a withdrawal address' }))
-                return
-              }
-              if (!formState.amount) {
-                setFormState((prev) => ({ ...prev, error: 'Please enter an amount' }))
-                return
-              }
-              const amount = parseFloat(formState.amount)
-              if (amount < minWithdrawals[formState.selectedCoin]) {
-                setFormState((prev) => ({ ...prev, error: `Minimum withdrawal is ${minWithdrawals[prev.selectedCoin]} ${prev.selectedCoin}` }))
-                return
-              }
-
-              setFormState((prev) => ({ ...prev, loading: true, error: null }))
-              try {
-                await fetch('/api/withdraw', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    coin: formState.selectedCoin,
-                    address: formState.withdrawAddress,
-                    amount: formState.amount,
-                    network: formState.selectedNetwork,
-                  }),
-                }).catch(() => ({
-                  ok: true,
-                  json: async () => ({
-                    success: true,
-                    message: 'Withdrawal initiated successfully',
-                  }),
-                }))
-
-                setFormState((prev) => ({
-                  ...prev,
-                  success: 'Withdrawal initiated! Processing time: 24-48 hours',
-                  loading: false,
-                  amount: '',
-                  withdrawAddress: '',
-                }))
-
-                setTimeout(() => {
-                  setFormState((prev) => ({ ...prev, success: null }))
-                }, 3000)
-              } catch (error) {
-                setFormState((prev) => ({
-                  ...prev,
-                  error: error instanceof Error ? error.message : 'Withdrawal failed',
-                  loading: false,
-                }))
-              }
-            }}
-            disabled={formState.loading}
-            className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-slate-600 text-white font-semibold py-3 rounded-lg transition"
-          >
-            {formState.loading ? 'Processing...' : 'Withdraw'}
-          </button>
-
-          {/* Processing Info */}
-          <div className="bg-slate-800/50 border border-slate-700/50 rounded-lg p-4 flex gap-3">
-            <Info size={20} className="text-blue-400 flex-shrink-0" />
-            <div className="text-sm text-slate-300">
-              <p className="font-semibold">Processing time: 24-48 hours</p>
-              <p>Identity verification is required for withdrawals</p>
-            </div>
-          </div>
-        </div>
-      </main>
     </div>
   )
 }
