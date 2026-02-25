@@ -9,5 +9,6 @@ export default function HeaderWrapper() {
   // Hide header on home page
   if (pathname === '/') return null
   if (pathname === '/login') return null
+  if (pathname === '/register') return null
   return <Header />
 }
