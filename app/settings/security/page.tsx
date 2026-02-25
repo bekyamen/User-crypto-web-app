@@ -1,8 +1,12 @@
 'use client'
 
+
 import { useState } from 'react'
 import { ChevronLeft, Lock, Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react'
 import Link from 'next/link'
+
+
+
 
 export default function SecurityPage() {
   const [activeTab, setActiveTab] = useState('login')
@@ -14,6 +18,8 @@ export default function SecurityPage() {
   const [showConfirm, setShowConfirm] = useState(false)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+
 
   const handleUpdatePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
@@ -56,32 +62,7 @@ export default function SecurityPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
       {/* Header */}
-      <header className="border-b border-slate-700/50 sticky top-0 z-40 bg-gradient-to-b from-slate-950 to-slate-900/80 backdrop-blur">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center gap-3 mb-4">
-            <Link href="/settings" className="p-2 hover:bg-slate-800 rounded-lg transition">
-              <ChevronLeft className="w-5 h-5 text-slate-400 hover:text-white" />
-            </Link>
-            <h1 className="text-white font-bold text-lg">Settings</h1>
-          </div>
-
-          {/* Navigation Tabs */}
-          <div className="flex items-center gap-2 overflow-x-auto">
-            <Link href="/settings" className="px-4 py-2 rounded-lg text-slate-400 hover:text-white transition whitespace-nowrap">
-              Dashboard
-            </Link>
-            <Link href="/settings/identity-verification" className="px-4 py-2 rounded-lg text-slate-400 hover:text-white transition whitespace-nowrap">
-              Identity Verification
-            </Link>
-            <Link href="/settings/spot-history" className="px-4 py-2 rounded-lg text-slate-400 hover:text-white transition whitespace-nowrap">
-              Spot History
-            </Link>
-            <Link href="/settings/security" className="px-4 py-2 rounded-lg bg-orange-500 text-white font-semibold whitespace-nowrap">
-              Security
-            </Link>
-          </div>
-        </div>
-      </header>
+      
 
       {/* Main Content */}
       <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
