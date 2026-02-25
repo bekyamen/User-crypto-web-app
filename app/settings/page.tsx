@@ -113,26 +113,7 @@ const [balance, setBalance] = useState<number>(0)
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
       {/* Header */}
-      <header className="border-b border-slate-700/50 sticky top-0 z-40 bg-gradient-to-b from-slate-950 to-slate-900/80 backdrop-blur">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-orange-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                <span className="text-white font-bold text-sm">₿</span>
-              </div>
-              <span className="text-white font-bold text-lg">BIT TRADING</span>
-            </div>
-          </div>
-
-          <nav className="flex items-center gap-4 sm:gap-8 text-sm mb-6">
-            <Link href="/" className="text-slate-400 hover:text-white transition">Home</Link>
-            <Link href="/market" className="text-slate-400 hover:text-white transition">Market</Link>
-            <Link href="/news" className="text-slate-400 hover:text-white transition">News</Link>
-            <Link href="/assets" className="text-slate-400 hover:text-white transition">Assets</Link>
-            <span className="text-blue-400 font-semibold transition">Settings</span>
-          </nav>
-        </div>
-      </header>
+      
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Page Title */}

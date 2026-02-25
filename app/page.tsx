@@ -1,4 +1,4 @@
-import { Header } from '@/components/header'
+import { Header } from '@/components/landing page-header'
 import { MarketTicker } from '@/components/market-ticker'
 import { Hero } from '@/components/hero'
 import { StatsSection } from '@/components/stats'

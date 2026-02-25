@@ -99,47 +99,7 @@ export default function MarketPage() {
     <div className="min-h-screen bg-slate-950 text-white py-8">
       <div className="w-full max-w-6xl mx-auto px-4">
 
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-6">
-            {/* Logo */}
-            <Link href="/" className="flex items-center gap-2">
-              <Image
-                src="/logo.jpg"
-                alt="Bit Trading Logo"
-                width={120}
-                height={120}
-                className="rounded-lg"
-                priority
-              />
-            </Link>
-
-            {/* Navigation Menu */}
-            <nav className="flex items-center gap-4 sm:gap-8 text-sm flex-1 ml-8">
-              <Link href="/home" className={linkClass("/home")}>Home</Link>
-              <Link href="/trade" className={linkClass("/trade")}>Trade</Link>
-              <Link href="/market-report" className={linkClass("/market-report")}>Market</Link>
-              <Link href="/news" className={linkClass("/news")}>News</Link>
-              <Link href="/assets" className={linkClass("/assets")}>Assets</Link>
-            </nav>
-          </div>
-
-          {/* Header Buttons */}
-          <div className="flex items-center gap-4">
-            <Settings
-              size={20}
-              className="text-slate-400 hover:text-white cursor-pointer"
-              onClick={() => router.push('/settings')}
-            />
-            <NotificationDropdown />
-             <button
-              onClick={handleSignOut}
-              className="p-2 hover:bg-slate-800/50 rounded-lg transition text-red-500 hover:text-red-400"
-            >
-              <LogOut size={20} />
-            </button>
-          </div>
-        </div>
+       
 
         {/* Page Title */}
         <h1 className="text-3xl font-bold mb-6">Live Market (Binance)</h1>
