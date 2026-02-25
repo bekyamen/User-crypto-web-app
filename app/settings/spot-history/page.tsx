@@ -4,10 +4,7 @@ import { useState, useEffect } from 'react'
 import {
   TrendingDown,
   TrendingUp,
-  ArrowDownLeft,
   ArrowUpRight,
-  ArrowUpLeft,
-  X,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -53,15 +50,14 @@ export default function SpotHistoryPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
 
-  const [modalOpen, setModalOpen] = useState(false)
-  const [selectedItem, setSelectedItem] = useState<any>(null)
-
   const filters = [
     { id: 'withdrawals', label: 'Withdrawals', icon: TrendingDown },
     { id: 'trades', label: 'Trades', icon: ArrowUpRight },
     { id: 'deposits', label: 'Deposits', icon: TrendingUp },
-    
   ]
+
+  // Base API from .env
+  const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL
 
   // =============================
   // API ROUTE MAPPER
@@ -89,18 +85,16 @@ export default function SpotHistoryPage() {
     setLoading(true)
 
     try {
-      // ===== TRADES TAB (trade-sim endpoint) =====
+      // ===== TRADES TAB =====
       if (activeTab === 'trades') {
         const res = await fetch(
-          `http://localhost:5000/api/trade-sim/user/${user?.id}`,
+          `${API_BASE}/trade-sim/user/${user?.id}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
         )
-
         const json = await res.json()
         if (!res.ok) throw new Error(json.message)
-
         setData(json.data?.trades || [])
         setTotalPages(1)
         setLoading(false)
@@ -109,7 +103,7 @@ export default function SpotHistoryPage() {
 
       // ===== OTHER TABS =====
       const res = await fetch(
-        `http://localhost:5000/api${getEndpoint()}?page=${currentPage}&limit=${rowsPerPage}`,
+        `${API_BASE}${getEndpoint()}?page=${currentPage}&limit=${rowsPerPage}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -117,7 +111,6 @@ export default function SpotHistoryPage() {
 
       const json = await res.json()
       if (!res.ok) throw new Error(json.message)
-
       setData(json.data || [])
       setTotalPages(json.pagination?.pages || 1)
     } catch (err) {
@@ -135,7 +128,6 @@ export default function SpotHistoryPage() {
   return (
     <div className="min-h-screen bg-slate-950 text-white">
       <main className="max-w-7xl mx-auto px-6 py-10 space-y-6">
-
         <div>
           <h1 className="text-2xl font-bold">Spot History</h1>
           <p className="text-slate-400 text-sm">
@@ -172,8 +164,6 @@ export default function SpotHistoryPage() {
         <div className="border border-slate-800 rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
-
-              {/* ===== TABLE HEAD ===== */}
               <thead className="bg-slate-900 border-b border-slate-800">
                 {activeTab === 'trades' ? (
                   <tr>
@@ -194,8 +184,6 @@ export default function SpotHistoryPage() {
                   </tr>
                 )}
               </thead>
-
-              {/* ===== TABLE BODY ===== */}
               <tbody>
                 {loading ? (
                   <tr>
@@ -216,32 +204,21 @@ export default function SpotHistoryPage() {
                       className="border-b border-slate-800 hover:bg-slate-900"
                     >
                       <td className="px-6 py-4">{trade.asset}</td>
-
                       <td className={`px-6 py-4 font-semibold ${
-                        trade.type === 'BUY'
-                          ? 'text-green-400'
-                          : 'text-red-400'
+                        trade.type === 'BUY' ? 'text-green-400' : 'text-red-400'
                       }`}>
                         {trade.type}
                       </td>
-
                       <td className="px-6 py-4">
-                        {trade.expirationTime
-                          ? `${trade.expirationTime}s`
-                          : 'Market'}
+                        {trade.expirationTime ? `${trade.expirationTime}s` : 'Market'}
                       </td>
-
                       <td className="px-6 py-4">${trade.amount}</td>
-
                       <td className={`px-6 py-4 font-semibold ${
-                        trade.profitLossPercent >= 0
-                          ? 'text-green-400'
-                          : 'text-red-400'
+                        trade.profitLossPercent >= 0 ? 'text-green-400' : 'text-red-400'
                       }`}>
                         {trade.profitLossPercent >= 0 ? '+' : ''}
                         {trade.profitLossPercent}%
                       </td>
-
                       <td className="px-6 py-4">
                         <span className={`px-3 py-1 rounded-full text-xs ${
                           trade.outcome === 'WIN'
@@ -251,7 +228,6 @@ export default function SpotHistoryPage() {
                           {trade.outcome}
                         </span>
                       </td>
-
                       <td className="px-6 py-4 text-slate-400 text-sm">
                         {new Date(trade.timestamp).toLocaleString()}
                       </td>
