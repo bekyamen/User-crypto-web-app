@@ -1,178 +1,260 @@
 'use client'
 
-import { useState } from 'react'
-import { ChevronLeft, Shield, AlertCircle, CheckCircle2, Upload } from 'lucide-react'
-import Link from 'next/link'
+import { useState, useEffect } from 'react'
+import { Shield, Upload } from 'lucide-react'
+import { useAuth } from '@/hooks/useAuth'
+
+type Verification = {
+  id: string
+  userId: string
+  documentType: string
+  fullName: string
+  documentNumber: string
+  frontSideUrl: string
+  backSideUrl: string
+  reviewedBy: string | null
+  reviewNote: string | null
+  status: 'PENDING' | 'APPROVED' | 'REJECTED'
+  createdAt: string
+  updatedAt: string
+}
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
 
 export default function IdentityVerificationPage() {
-  const [documentType, setDocumentType] = useState('identity-card')
+  const { token, isLoading: authLoading } = useAuth()
+  const [verification, setVerification] = useState<Verification | null>(null)
+  const [documentType, setDocumentType] = useState('passport')
   const [fullName, setFullName] = useState('')
   const [documentNumber, setDocumentNumber] = useState('')
-  const [frontSide, setFrontSide] = useState(false)
-  const [backSide, setBackSide] = useState(false)
+  const [frontSideFile, setFrontSideFile] = useState<File | null>(null)
+  const [backSideFile, setBackSideFile] = useState<File | null>(null)
+  const [frontPreview, setFrontPreview] = useState<string | null>(null)
+  const [backPreview, setBackPreview] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [fetching, setFetching] = useState(true)
 
-  const verificationProgress = 35
   const documentTypes = [
-    { id: 'identity-card', name: 'Identity Card', desc: 'Passport, ID or Government issued ID' },
-    { id: 'passport', name: 'Passport', desc: 'Valid passport document' },
-    { id: 'driver-license', name: "Driver's License", desc: "Valid driver's license" },
+    { id: 'identity-card', name: 'Identity Card' },
+    { id: 'passport', name: 'Passport' },
+    { id: 'driver-license', name: "Driver's License" },
   ]
 
-  const handleSubmit = async () => {
-    if (!fullName || !documentNumber || !frontSide || !backSide) {
-      alert('Please fill all required fields')
+  // =============================
+  // Fetch existing verification
+  // =============================
+  const fetchVerification = async () => {
+    if (!token) {
+      setFetching(false)
       return
     }
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/identity-verification/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+
+      let data
+      try {
+        data = await res.json()
+      } catch (err) {
+        console.error('Failed to parse JSON:', err)
+        setVerification(null)
+        return
+      }
+
+      if (!res.ok) {
+        console.error('Server error:', data)
+        setVerification(null)
+        return
+      }
+
+      setVerification(data.verification)
+    } catch (err: any) {
+      console.error('Fetch verification error:', err.message)
+      setVerification(null)
+    } finally {
+      setFetching(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!authLoading) fetchVerification()
+  }, [token, authLoading])
+
+  // =============================
+  // Handle file selection
+  // =============================
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, side: 'front' | 'back') => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      if (side === 'front') {
+        setFrontPreview(reader.result as string)
+        setFrontSideFile(file)
+      } else {
+        setBackPreview(reader.result as string)
+        setBackSideFile(file)
+      }
+    }
+    reader.readAsDataURL(file)
+  }
+
+  // =============================
+  // Submit verification
+  // =============================
+  const handleSubmit = async () => {
+    if (!fullName || !documentNumber || !frontSideFile || !backSideFile || !token) {
+      alert('Please fill all required fields and upload both documents')
+      return
+    }
+
     setLoading(true)
     try {
-      await fetch('/api/verify', {
+      const formData = new FormData()
+      formData.append('fullName', fullName)
+      formData.append('documentNumber', documentNumber)
+      formData.append('documentType', documentType.toUpperCase())
+      formData.append('frontSide', frontSideFile)
+      formData.append('backSide', backSideFile)
+
+      const res = await fetch(`${API_BASE_URL}/identity-verification/submit`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          documentType,
-          fullName,
-          documentNumber,
-        }),
-      }).catch(() => ({ ok: true }))
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      })
+
+      let data
+      try {
+        data = await res.json()
+      } catch (err) {
+        alert('Server returned invalid response')
+        return
+      }
+
+      if (!res.ok) {
+        console.error('Submission error:', data)
+        alert(data.message || 'Submission failed')
+        return
+      }
+
+      setVerification(data.verification)
       alert('Verification submitted successfully!')
-    } catch (error) {
-      alert('Submission failed')
+
+      // reset form
+      setFullName('')
+      setDocumentNumber('')
+      setFrontSideFile(null)
+      setBackSideFile(null)
+      setFrontPreview(null)
+      setBackPreview(null)
+    } catch (err: any) {
+      alert(err.message || 'Submission failed')
     } finally {
       setLoading(false)
     }
   }
 
+  if (authLoading || fetching) return <p className="text-white text-center mt-10">Loading...</p>
+
+  // =============================
+  // Render
+  // =============================
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
-      {/* Header */}
-     
+    <div className="min-h-screen bg-slate-950 text-white px-4 py-8 max-w-4xl mx-auto">
+      <h1 className="text-2xl font-bold mb-6">Identity Verification</h1>
 
-      {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        {/* Header Section */}
-        <div className="border border-slate-700/50 rounded-lg p-6 bg-slate-800/20">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-              <Shield className="w-6 h-6 text-blue-400" />
+      {verification ? (
+        verification.status === 'PENDING' ? (
+          <div className="border border-yellow-500 rounded-lg p-6 bg-yellow-900/20 text-yellow-200">
+            <div className="flex items-center gap-3 mb-4">
+              <Shield className="w-6 h-6 text-yellow-400" />
+              <h2 className="text-lg font-semibold">Verification Pending</h2>
             </div>
-            <div>
-              <h2 className="text-white text-xl font-bold">Identity Verification</h2>
-              <p className="text-slate-400 text-sm">Verify your identity to unlock full trading features and enhance account security</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Verification Progress */}
-        <div className="border border-slate-700/50 rounded-lg p-6 bg-slate-800/20">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-white font-semibold">Verification Progress</h3>
-            <span className="text-slate-400 text-sm">{verificationProgress}% Complete</span>
-          </div>
-          <div className="w-full bg-slate-800 rounded-full h-2 mb-6">
-            <div className="bg-gradient-to-r from-blue-500 to-orange-500 h-2 rounded-full" style={{ width: `${verificationProgress}%` }}></div>
-          </div>
-          <div className="flex items-center justify-between">
-            <div className="flex flex-col items-center gap-2">
-              <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">✓</div>
-              <span className="text-slate-400 text-xs text-center">Document Type</span>
-            </div>
-            <div className="flex-1 h-1 bg-slate-800 mx-2"></div>
-            <div className="flex flex-col items-center gap-2">
-              <div className="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center text-slate-400 font-bold">2</div>
-              <span className="text-slate-400 text-xs text-center">Personal Info</span>
-            </div>
-            <div className="flex-1 h-1 bg-slate-800 mx-2"></div>
-            <div className="flex flex-col items-center gap-2">
-              <div className="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center text-slate-400 font-bold">3</div>
-              <span className="text-slate-400 text-xs text-center">Upload Documents</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Info Sections */}
-        <div className="grid md:grid-cols-2 gap-4">
-          <div className="border border-slate-700/50 rounded-lg p-4 bg-blue-500/10">
-            <div className="flex gap-3">
-              <AlertCircle className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+            <p>Your identity verification is currently being reviewed. We'll notify you once it's complete (usually within 24-48 hours).</p>
+            <p className="mt-2 font-semibold">Status: <span className="text-yellow-400">{verification.status}</span></p>
+            <div className="flex gap-4 mt-4">
               <div>
-                <h4 className="text-white font-semibold text-sm mb-1">Why Verify?</h4>
-                <p className="text-slate-300 text-xs">Verifying your identity helps protect your account and enables higher trading limits, faster withdrawals, and access to advanced features.</p>
+                <p className="text-sm mb-1">Front Side</p>
+                <img src={verification.frontSideUrl} className="w-32 h-32 object-cover rounded-md" />
+              </div>
+              <div>
+                <p className="text-sm mb-1">Back Side</p>
+                <img src={verification.backSideUrl} className="w-32 h-32 object-cover rounded-md" />
               </div>
             </div>
+            {verification.reviewNote && <p className="mt-2 text-sm text-slate-300">Review Note: {verification.reviewNote}</p>}
           </div>
-          <div className="border border-slate-700/50 rounded-lg p-4 bg-blue-500/10">
-            <div className="flex gap-3">
-              <Shield className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
-              <div>
-                <h4 className="text-white font-semibold text-sm mb-1">Secure & Private</h4>
-                <p className="text-slate-300 text-xs">Your information is encrypted and secured. We use industry-standard security measures to protect your data.</p>
-              </div>
-            </div>
+        ) : (
+          <div className={`border rounded-lg p-6 ${verification.status === 'APPROVED' ? 'border-green-500 bg-green-900/20 text-green-200' : 'border-red-500 bg-red-900/20 text-red-200'}`}>
+            <h2 className="text-lg font-semibold mb-2">Verification Completed</h2>
+            <p>Status: <span className={verification.status === 'APPROVED' ? 'text-green-400 font-bold' : 'text-red-400 font-bold'}>{verification.status}</span></p>
+            <p>Full Name: {verification.fullName}</p>
+            <p>Document Number: {verification.documentNumber}</p>
+            <p>Document Type: {verification.documentType}</p>
           </div>
-        </div>
+        )
+      ) : (
+        <>
+          <div className="mb-4">
+            <label className="block mb-1 text-sm font-semibold">Document Type</label>
+            <select
+              value={documentType}
+              onChange={(e) => setDocumentType(e.target.value)}
+              className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-white"
+            >
+              {documentTypes.map((doc) => (
+                <option key={doc.id} value={doc.id}>{doc.name}</option>
+              ))}
+            </select>
+          </div>
 
-        {/* Document Type Selection */}
-       s
-
-        {/* Personal Information */}
-        <div className="space-y-4">
-          <h3 className="text-white font-semibold">Personal Information</h3>
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="mb-4 grid md:grid-cols-2 gap-4">
             <input
               type="text"
-              placeholder="Full name (as on document)"
+              placeholder="Full Name"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className="bg-slate-800/50 border border-slate-700/50 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+              className="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 w-full"
             />
             <input
               type="text"
-              placeholder="Document number"
+              placeholder="Document Number"
               value={documentNumber}
               onChange={(e) => setDocumentNumber(e.target.value)}
-              className="bg-slate-800/50 border border-slate-700/50 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+              className="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 w-full"
             />
           </div>
-        </div>
 
-        {/* Document Upload */}
-        <div className="space-y-4">
-          <h3 className="text-white font-semibold">Upload Documents</h3>
-          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 flex gap-2">
-            <AlertCircle className="w-5 h-5 text-yellow-400 flex-shrink-0" />
-            <p className="text-yellow-200 text-sm">Important: Ensure documents are clear, visible, and all information is visible. Blurry or incomplete documents will be rejected.</p>
-          </div>
-          <div className="grid md:grid-cols-2 gap-4">
-            {[
-              { side: 'Front Side', state: frontSide, setState: setFrontSide },
-              { side: 'Back Side', state: backSide, setState: setBackSide },
-            ].map((upload) => (
-              <button
-                key={upload.side}
-                onClick={() => upload.setState(!upload.state)}
-                className="border-2 border-dashed border-slate-600 rounded-lg p-8 hover:border-blue-500 transition flex flex-col items-center justify-center gap-3 bg-slate-800/20"
-              >
-                <Upload className="w-8 h-8 text-slate-400" />
-                <div>
-                  <p className="text-white font-semibold text-sm">{upload.side}</p>
-                  <p className="text-slate-400 text-xs">Click to upload or drag & drop</p>
-                </div>
-                {upload.state && <CheckCircle2 className="w-5 h-5 text-green-400 absolute" />}
-              </button>
-            ))}
-          </div>
-        </div>
+          <div className="mb-4 grid md:grid-cols-2 gap-4">
+            {/* Front Side */}
+            <label className="border-2 border-dashed border-slate-700 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer">
+              <Upload className="w-6 h-6 mb-2 text-slate-400" />
+              <span className="text-sm mb-2">Front Side</span>
+              <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileChange(e, 'front')} />
+              {frontPreview && <img src={frontPreview} className="mt-2 w-full h-32 object-cover rounded-md" />}
+            </label>
 
-        {/* Submit Button */}
-        <button
-          onClick={handleSubmit}
-          disabled={loading}
-          className="w-full bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 disabled:from-slate-600 disabled:to-slate-600 text-white font-semibold py-3 rounded-lg transition"
-        >
-          {loading ? 'Submitting...' : 'Submit Verification'}
-        </button>
-      </main>
+            {/* Back Side */}
+            <label className="border-2 border-dashed border-slate-700 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer">
+              <Upload className="w-6 h-6 mb-2 text-slate-400" />
+              <span className="text-sm mb-2">Back Side</span>
+              <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileChange(e, 'back')} />
+              {backPreview && <img src={backPreview} className="mt-2 w-full h-32 object-cover rounded-md" />}
+            </label>
+          </div>
+
+          <button
+            onClick={handleSubmit}
+            disabled={loading}
+            className="w-full bg-gradient-to-r from-teal-500 to-cyan-500 py-3 rounded-lg font-semibold hover:from-teal-600 hover:to-cyan-600 disabled:opacity-50 transition"
+          >
+            {loading ? 'Submitting...' : 'Submit Verification'}
+          </button>
+        </>
+      )}
     </div>
   )
 }
