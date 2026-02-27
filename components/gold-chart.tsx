@@ -1,217 +1,310 @@
-'use client';
+'use client'
 
-import { useEffect, useRef, useState } from 'react';
-import { createChart, LineSeries, IChartApi, UTCTimestamp } from 'lightweight-charts';
+import { useEffect, useRef, useState } from 'react'
+import {
+  createChart,
+  IChartApi,
+  UTCTimestamp,
+  CandlestickSeries,
+} from 'lightweight-charts'
 
-// Replace with your actual metals REST + WS endpoints
-const GOLD_WS = 'wss://stream.binance.com:9443/ws';
-const GOLD_REST = 'https://api.binance.com/api/v3/klines';
+type TF = '1min' | '5min' | '15min' | '1h' | '4h'
 
-type TF = '1s' | '1m' | '15m' | '1h' | '4h' | '1d';
-
-type Candle = {
-  time: UTCTimestamp;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-};
-
-interface GoldChartProps {
-  pair: string;      // e.g., "XAU/USD"
-  price: number;
-  change24h: number;
-  high24h?: number;
-  low24h?: number;
+interface Candle {
+  time: UTCTimestamp
+  open: number
+  high: number
+  low: number
+  close: number
 }
 
-export function GoldChart({ pair, price, change24h, high24h, low24h }: GoldChartProps) {
-  const chartEl = useRef<HTMLDivElement>(null);
-  const chart = useRef<IChartApi | null>(null);
-  const ws = useRef<WebSocket | null>(null);
+interface OrderLevel {
+  price: number
+  size: number
+}
 
-  const candleSeries = useRef<any>(null);
-  const ma7 = useRef<any>(null);
-  const ma14 = useRef<any>(null);
-  const ma28 = useRef<any>(null);
+interface Trade {
+  price: number
+  size: number
+  side: 'buy' | 'sell'
+  time: string
+}
 
-  const candles = useRef<Candle[]>([]);
-  const [tf, setTf] = useState<TF>('15m');
+export default function GoldDashboard() {
+  const API_KEY = '210420b658cf4bceaac0150f3e2481ab'
 
-  const isPositive = change24h >= 0;
-  const symbol = pair.replace('/', '').toLowerCase(); // e.g., XAUUSD -> xauusd
+  const GOLD_SYMBOLS = ['XAU/USD', 'XAU/EUR', 'XAU/GBP']
 
-  // =========================
-  // Chart Initialization
-  // =========================
+  const [symbol, setSymbol] = useState('XAU/USD')
+  const [tf, setTf] = useState<TF>('1min')
+  const [price, setPrice] = useState(0)
+  const [change, setChange] = useState(0)
+  const [high24, setHigh24] = useState(0)
+  const [low24, setLow24] = useState(0)
+
+  const [marketPrices, setMarketPrices] = useState<Record<string, number>>({})
+  const [orderBook, setOrderBook] = useState<{
+    bids: OrderLevel[]
+    asks: OrderLevel[]
+  }>({ bids: [], asks: [] })
+
+  const [trades, setTrades] = useState<Trade[]>([])
+
+  const chartRef = useRef<HTMLDivElement>(null)
+  const chart = useRef<IChartApi | null>(null)
+  const candleSeries = useRef<any>(null)
+  const ws = useRef<WebSocket | null>(null)
+  const lastCandle = useRef<Candle | null>(null)
+
+  /* ===================== INIT CHART ===================== */
   useEffect(() => {
-    if (!chartEl.current) return;
+    if (!chartRef.current) return
 
-    chart.current = createChart(chartEl.current, {
-      layout: { background: { color: '#071225' }, textColor: '#b9c3d6' },
-      grid: {
-        vertLines: { color: 'rgba(255,255,255,0.06)' },
-        horzLines: { color: 'rgba(255,255,255,0.06)' },
+    chart.current = createChart(chartRef.current, {
+      layout: {
+        background: { color: '#0f172a' },
+        textColor: '#cbd5e1',
       },
-      rightPriceScale: { borderColor: 'rgba(255,255,255,0.1)' },
-      timeScale: { borderColor: 'rgba(255,255,255,0.1)', timeVisible: true, secondsVisible: true },
-    });
+      grid: {
+        vertLines: { color: 'rgba(255,255,255,0.05)' },
+        horzLines: { color: 'rgba(255,255,255,0.05)' },
+      },
+      rightPriceScale: { borderColor: '#334155' },
+      timeScale: { timeVisible: true },
+    })
 
-    candleSeries.current = chart.current.addSeries(LineSeries, { color: '#f5a623', lineWidth: 2 });
+    candleSeries.current = chart.current.addSeries(CandlestickSeries, {
+      upColor: '#22c55e',
+      downColor: '#ef4444',
+      wickUpColor: '#22c55e',
+      wickDownColor: '#ef4444',
+      borderVisible: false,
+    })
 
-    ma7.current = chart.current.addSeries(LineSeries, { color: '#00ffb0', lineWidth: 2 });
-    ma14.current = chart.current.addSeries(LineSeries, { color: '#00d0ff', lineWidth: 2 });
-    ma28.current = chart.current.addSeries(LineSeries, { color: '#ff00ff', lineWidth: 2 });
+    return () => chart.current?.remove()
+  }, [])
 
-    const ro = new ResizeObserver(entries => {
-      const { width } = entries[0].contentRect;
-      chart.current?.applyOptions({ width });
-    });
-    ro.observe(chartEl.current);
-
-    return () => {
-      ro.disconnect();
-      chart.current?.remove();
-    };
-  }, []);
-
-  // =========================
-  // Fetch historical REST candles
-  // =========================
+  /* ===================== LOAD HISTORY ===================== */
   useEffect(() => {
-    async function fetchHistory() {
-      try {
-        const tfParam = tf === '1s' ? '1s' : tf.toUpperCase();
-        const res = await fetch(`${GOLD_REST}?symbol=${symbol}&interval=${tfParam}&limit=100`);
-        const data = await res.json();
+    async function loadHistory() {
+      const res = await fetch(
+        `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${tf}&outputsize=200&apikey=${API_KEY}`
+      )
 
-        candles.current = data.map((k: any) => ({
-          time: Math.floor(k[0] / 1000),
-          open: +k[1],
-          high: +k[2],
-          low: +k[3],
-          close: +k[4],
-          volume: +k[5],
-        }));
+      const data = await res.json()
+      if (!data.values) return
 
-        renderChart();
-      } catch (err) {
-        console.error('Failed to fetch gold history', err);
+      const formatted: Candle[] = data.values
+        .map((c: any) => ({
+          time: Math.floor(new Date(c.datetime).getTime() / 1000) as UTCTimestamp,
+          open: +c.open,
+          high: +c.high,
+          low: +c.low,
+          close: +c.close,
+        }))
+        .reverse()
+
+      candleSeries.current.setData(formatted)
+
+      const last = formatted[formatted.length - 1]
+      lastCandle.current = last
+
+      setPrice(last.close)
+      setHigh24(Math.max(...formatted.map(c => c.high)))
+      setLow24(Math.min(...formatted.map(c => c.low)))
+
+      const dayOpen = formatted[0].open
+      setChange(((last.close - dayOpen) / dayOpen) * 100)
+    }
+
+    loadHistory()
+  }, [symbol, tf])
+
+  /* ===================== ORDER BOOK GENERATOR ===================== */
+  const generateOrderBook = (mid: number) => {
+    const depth = 12
+    const spread = 0.3
+    const bids: OrderLevel[] = []
+    const asks: OrderLevel[] = []
+
+    for (let i = 1; i <= depth; i++) {
+      bids.push({
+        price: mid - spread - i * 0.1,
+        size: +(Math.random() * 20 + 1).toFixed(2),
+      })
+
+      asks.push({
+        price: mid + spread + i * 0.1,
+        size: +(Math.random() * 20 + 1).toFixed(2),
+      })
+    }
+
+    return { bids, asks }
+  }
+
+  /* ===================== TRADE GENERATOR ===================== */
+  const generateTrade = (price: number): Trade => ({
+    price,
+    size: +(Math.random() * 5 + 0.1).toFixed(2),
+    side: Math.random() > 0.5 ? 'buy' : 'sell',
+    time: new Date().toLocaleTimeString(),
+  })
+
+  /* ===================== LIVE STREAM ===================== */
+  useEffect(() => {
+    if (ws.current) ws.current.close()
+
+    ws.current = new WebSocket(
+      `wss://ws.twelvedata.com/v1/quotes/price?apikey=${API_KEY}`
+    )
+
+    ws.current.onopen = () => {
+      ws.current?.send(
+        JSON.stringify({
+          action: 'subscribe',
+          params: { symbols: GOLD_SYMBOLS.join(',') },
+        })
+      )
+    }
+
+    ws.current.onmessage = event => {
+      const data = JSON.parse(event.data)
+      if (!data.price || !data.symbol) return
+
+      const livePrice = parseFloat(data.price)
+
+      setMarketPrices(prev => ({
+        ...prev,
+        [data.symbol]: livePrice,
+      }))
+
+      if (data.symbol === symbol && lastCandle.current) {
+        setPrice(livePrice)
+
+        const updated: Candle = {
+          ...lastCandle.current,
+          close: livePrice,
+          high: Math.max(lastCandle.current.high, livePrice),
+          low: Math.min(lastCandle.current.low, livePrice),
+        }
+
+        candleSeries.current.update(updated)
+        lastCandle.current = updated
+
+        setOrderBook(generateOrderBook(livePrice))
+
+        setTrades(prev => [
+          generateTrade(livePrice),
+          ...prev.slice(0, 30),
+        ])
       }
     }
 
-    fetchHistory();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tf, symbol]);
+    return () => ws.current?.close()
+  }, [symbol])
 
-  // =========================
-  // WebSocket for live updates
-  // =========================
-  useEffect(() => {
-    ws.current?.close();
-    ws.current = new WebSocket(`${GOLD_WS}/${symbol}@trade`);
-
-    ws.current.onmessage = e => {
-      const data = JSON.parse(e.data);
-      const time = Math.floor(data.T / 1000) as UTCTimestamp;
-      const price = +data.p;
-
-      const last = candles.current[candles.current.length - 1];
-
-      if (!last || last.time !== time) {
-        candles.current.push({ time, open: price, high: price, low: price, close: price, volume: +data.q });
-      } else {
-        last.close = price;
-        last.high = Math.max(last.high, price);
-        last.low = Math.min(last.low, price);
-        last.volume += +data.q;
-      }
-
-      renderChart();
-    };
-
-    return () => ws.current?.close();
-  }, [symbol]);
-
-  // =========================
-  // Calculate SMA
-  // =========================
-  const calcSMA = (len: number) => {
-    let sum = 0;
-    return candles.current
-      .map((c, i) => {
-        sum += c.close;
-        if (i >= len) sum -= candles.current[i - len].close;
-        if (i < len - 1) return null;
-        return { time: c.time, value: +(sum / len).toFixed(2) };
-      })
-      .filter(Boolean) as { time: UTCTimestamp; value: number }[];
-  };
-
-  const renderChart = () => {
-    candleSeries.current?.setData(candles.current.map(c => ({ time: c.time, value: c.close })));
-    ma7.current?.setData(calcSMA(7));
-    ma14.current?.setData(calcSMA(14));
-    ma28.current?.setData(calcSMA(28));
-  };
-
-  // =========================
-  // Render UI
-  // =========================
+  /* ===================== UI ===================== */
   return (
-    <div className="bg-slate-900/50 border border-slate-800 rounded-lg p-6">
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-end gap-4 mb-4">
-          <div>
-            <div className="text-white text-5xl font-bold">{price ? price.toFixed(2) : '--'}</div>
-            <div className="text-slate-400 text-sm mt-1">USD</div>
-          </div>
-          <div className={`text-2xl font-semibold mb-1 ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
-            {price ? `${isPositive ? '+' : ''}${change24h.toFixed(2)}%` : '--'}
-          </div>
-        </div>
+    <div className="flex h-screen bg-slate-950 text-white">
 
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div>
-            <div className="text-slate-500 text-xs mb-1">24h High</div>
-            <div className="text-white font-medium">{high24h ? high24h.toFixed(2) : '--'}</div>
-          </div>
-          <div>
-            <div className="text-slate-500 text-xs mb-1">24h Low</div>
-            <div className="text-white font-medium">{low24h ? low24h.toFixed(2) : '--'}</div>
-          </div>
-        </div>
-      </div>
+      {/* LEFT MARKET LIST */}
+      <div className="w-64 border-r border-slate-800 p-4">
+        <h2 className="font-bold mb-4 text-yellow-400">Gold Markets</h2>
 
-      {/* Time Frame Buttons */}
-      <div className="flex gap-2 mb-6 pb-6 border-b border-slate-700">
-        {(['1s', '1m', '15m', '1h', '4h', '1d'] as TF[]).map(time => (
-          <button
-            key={time}
-            className={`px-4 py-2 rounded text-sm font-medium transition ${
-              time === tf ? 'bg-orange-500 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'
-            }`}
-            onClick={() => setTf(time)}
+        {GOLD_SYMBOLS.map(s => (
+          <div
+            key={s}
+            onClick={() => setSymbol(s)}
+            className={`flex justify-between py-2 px-3 rounded cursor-pointer
+            ${symbol === s ? 'bg-yellow-600' : 'hover:bg-slate-800'}`}
           >
-            {time}
-          </button>
+            <span>{s}</span>
+            <span className="text-sm text-slate-400">
+              {marketPrices[s]?.toFixed(2) ?? '--'}
+            </span>
+          </div>
         ))}
       </div>
 
-      {/* Chart */}
-      <div ref={chartEl} className="h-96 w-full rounded bg-gradient-to-b from-slate-800 to-slate-900" />
-
-      {/* Legend */}
-      <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-slate-700 text-xs">
-        {['MA7', 'MA14', 'MA28'].map(ma => (
-          <div key={ma}>
-            <span className="text-slate-500">{ma}:</span>
-            <span className="text-white ml-2">{price ? price.toFixed(2) : '--'}</span>
+      {/* CENTER */}
+      <div className="flex-1 flex flex-col">
+        <div className="p-4 border-b border-slate-800">
+          <div className="text-3xl font-bold text-yellow-400">
+            {price.toFixed(2)} USD
           </div>
-        ))}
+
+          <div
+            className={`text-sm font-semibold ${
+              change >= 0 ? 'text-green-400' : 'text-red-400'
+            }`}
+          >
+            {change >= 0 ? '▲' : '▼'} {change.toFixed(2)}%
+          </div>
+
+          <div className="text-sm text-slate-400 mt-2">
+            24h High: {high24.toFixed(2)} | 24h Low: {low24.toFixed(2)}
+          </div>
+
+          <div className="flex gap-2 mt-3">
+            {(['1min','5min','15min','1h','4h'] as TF[]).map(t => (
+              <button
+                key={t}
+                onClick={() => setTf(t)}
+                className={`px-3 py-1 rounded ${
+                  tf === t ? 'bg-yellow-600' : 'bg-slate-800'
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div ref={chartRef} className="flex-1" />
+      </div>
+
+      {/* RIGHT SIDE */}
+      <div className="w-80 border-l border-slate-800 p-4 flex flex-col">
+
+        <h2 className="font-bold mb-2">Order Book</h2>
+
+        <div className="text-xs">
+          {orderBook.asks.slice().reverse().map((a, i) => (
+            <div key={i} className="flex justify-between text-red-400 py-0.5">
+              <span>{a.price.toFixed(2)}</span>
+              <span>{a.size.toFixed(2)}</span>
+            </div>
+          ))}
+
+          <div className="text-center text-yellow-400 font-bold py-1">
+            {price.toFixed(2)}
+          </div>
+
+          {orderBook.bids.map((b, i) => (
+            <div key={i} className="flex justify-between text-green-400 py-0.5">
+              <span>{b.price.toFixed(2)}</span>
+              <span>{b.size.toFixed(2)}</span>
+            </div>
+          ))}
+        </div>
+
+        <h2 className="font-bold mt-6 mb-2">Recent Trades</h2>
+
+        <div className="flex-1 overflow-auto text-xs">
+          {trades.map((t, i) => (
+            <div
+              key={i}
+              className={`flex justify-between py-1 ${
+                t.side === 'buy' ? 'text-green-400' : 'text-red-400'
+              }`}
+            >
+              <span>{t.time}</span>
+              <span>{t.price.toFixed(2)}</span>
+              <span>{t.size.toFixed(2)}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
-  );
+  )
 }
