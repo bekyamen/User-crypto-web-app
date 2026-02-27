@@ -135,7 +135,7 @@ export function ReallTradingDashboard({ tab }: TradingDashboardProps) {
         {/* Trade Panel */}
         <div className="bg-slate-900/50 border border-slate-800 rounded-lg p-4">
           <h3 className="text-white font-semibold mb-4">
-            Trade {selectedPair}
+            Trade 
           </h3>
 
           <div className="flex gap-2">
