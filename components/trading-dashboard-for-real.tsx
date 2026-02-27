@@ -19,6 +19,14 @@ interface TradingDashboardProps {
 export function ReallTradingDashboard({ tab }: TradingDashboardProps) {
   const { user, isAuthenticated, token } = useAuth()
 
+  /* ================= LOCAL ACTIVE TAB ================= */
+  const [activeTab, setActiveTab] = useState<'crypto' | 'forex' | 'gold'>(tab)
+
+  useEffect(() => {
+    setActiveTab(tab)
+  }, [tab])
+
+  /* ================= STATE ================= */
   const [userTrades, setUserTrades] = useState<TradeWithSymbol[]>([])
   const [availableBalance, setAvailableBalance] = useState<number>(0)
 
@@ -27,13 +35,22 @@ export function ReallTradingDashboard({ tab }: TradingDashboardProps) {
   const [modalOpen, setModalOpen] = useState(false)
   const [modalType, setModalType] = useState<'buy' | 'sell'>('buy')
 
-  /* ================= FETCH USER BALANCE ================= */
+  /* ================= AUTO CHANGE PAIR BASED ON TAB ================= */
+  useEffect(() => {
+    if (activeTab === 'crypto') setSelectedPair('BTC/USDT')
+    if (activeTab === 'forex') setSelectedPair('EUR/USD')
+    if (activeTab === 'gold') setSelectedPair('XAU/USD')
+  }, [activeTab])
+
+  /* ================= FETCH BALANCE ================= */
   const fetchBalance = useCallback(async () => {
     if (!token) return
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/user/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/user/me`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+
       const data = await res.json()
 
       if (data.success && data.data?.balance !== undefined) {
@@ -55,9 +72,7 @@ export function ReallTradingDashboard({ tab }: TradingDashboardProps) {
     try {
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/trade-sim/user/${user.id}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       )
 
       const data = await res.json()
@@ -74,7 +89,7 @@ export function ReallTradingDashboard({ tab }: TradingDashboardProps) {
     fetchUserTrades()
   }, [fetchUserTrades])
 
-  /* ================= HANDLE TRADE COMPLETE ================= */
+  /* ================= TRADE COMPLETE ================= */
   const handleTradeComplete = async () => {
     await fetchBalance()
     await fetchUserTrades()
@@ -85,16 +100,33 @@ export function ReallTradingDashboard({ tab }: TradingDashboardProps) {
     symbol: selectedPair.split('/')[0],
     name: selectedPair.split('/')[0],
     price: 0,
-    assetClass: tab,
+    assetClass: activeTab,
   }
 
   return (
     <>
+      {/* ================= TAB SWITCHER ================= */}
+      <div className="flex gap-3 mb-6">
+        {(['crypto', 'forex', 'gold'] as const).map(t => (
+          <button
+            key={t}
+            onClick={() => setActiveTab(t)}
+            className={`px-4 py-2 rounded-md font-semibold capitalize ${
+              activeTab === t
+                ? 'bg-blue-600 text-white'
+                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+            }`}
+          >
+            {t}
+          </button>
+        ))}
+      </div>
+
       {/* ================= CHART ================= */}
       <div className="mb-6">
-        {tab === 'crypto' && <CryptoDashboard  />}
-        {tab === 'forex' && <ForexDashboard />}
-        {tab === 'gold' && <GoldDashboard />}
+        {activeTab === 'crypto' && <CryptoDashboard />}
+        {activeTab === 'forex' && <ForexDashboard />}
+        {activeTab === 'gold' && <GoldDashboard />}
       </div>
 
       {/* ================= TRADE SECTION ================= */}
@@ -134,7 +166,7 @@ export function ReallTradingDashboard({ tab }: TradingDashboardProps) {
           </div>
         </div>
 
-        {/* User Recent Trades */}
+        {/* User Trades */}
         <div className="bg-slate-900/50 border border-slate-800 rounded-lg p-4">
           <h3 className="text-white font-semibold mb-4">
             Your Recent Trades
