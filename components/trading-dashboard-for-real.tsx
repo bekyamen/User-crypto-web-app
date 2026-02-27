@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { CryptoChart } from '@/components/crypto-chart'
-import { ForexChart } from '@/components/forex-chart'
-import { GoldChart } from '@/components/gold-chart'
+import { CryptoDashboard  } from '@/components/crypto-chart'
+import  ForexDashboard from '@/components/forex-chart'
+import  GoldDashboard from '@/components/gold-chart'
 import { ReallTradeModal } from './trade-modal-for reall'
 import { useAuth } from '@/hooks/useAuth'
 import type { TradeResult, Asset } from '@/lib/api-two'
@@ -219,9 +219,9 @@ const handleTradeComplete = async () => {
 
         {/* CENTER CHART */}
         <div className="lg:col-span-2">
-          {tab === 'crypto' && <CryptoChart pair={selectedPair} price={currentPrice} change24h={currentChange} />}
-          {tab === 'forex' && <ForexChart pair={selectedPair} price={currentPrice} change24h={currentChange} />}
-          {tab === 'gold' && <GoldChart pair={selectedPair} price={currentPrice} change24h={currentChange} />}
+          {tab === 'crypto' && <CryptoDashboard pair={selectedPair} price={currentPrice} change24h={currentChange} />}
+          {tab === 'forex' && <ForexDashboard pair={selectedPair} price={currentPrice} change24h={currentChange} />}
+          {tab === 'gold' && <GoldDashboard pair={selectedPair} price={currentPrice} change24h={currentChange} />}
         </div>
 
         {/* RIGHT TRADE PANEL */}
