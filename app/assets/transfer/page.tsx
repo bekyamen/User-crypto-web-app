@@ -70,20 +70,7 @@ export default function TransferPage() {
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
       {/* Header with Back Button */}
       <div className="border-b border-slate-700/50 sticky top-0 z-40 bg-gradient-to-b from-slate-950 to-slate-900/80 backdrop-blur">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center gap-4">
-            <Link
-              href="/assets"
-              className="p-2 hover:bg-slate-800/50 rounded-lg transition text-slate-400 hover:text-white"
-            >
-              <ChevronLeft size={20} />
-            </Link>
-            <div>
-              <h1 className="text-white font-bold text-lg">Transfer Funds</h1>
-              <p className="text-slate-400 text-sm">Move funds between your accounts</p>
-            </div>
-          </div>
-        </div>
+        
       </div>
 
       {/* Main Content */}
