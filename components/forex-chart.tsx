@@ -1,305 +1,311 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useMemo } from 'react'
+import { useSearchParams } from 'next/navigation'
 import {
   createChart,
+  CandlestickSeries,
+  HistogramSeries,
   IChartApi,
   UTCTimestamp,
-  CandlestickSeries,
 } from 'lightweight-charts'
 
-type TF = '1min' | '5min' | '15min' | '1h'
+type TF = '1m' | '15m' | '1h' | '4h' | '1d'
 
-interface Candle {
+type Candle = {
   time: UTCTimestamp
   open: number
   high: number
   low: number
   close: number
+  volume: number
 }
 
 interface Market {
   symbol: string
+  name: string
   price: number
   change: number
 }
 
-interface Trade {
-  price: number
-  size: number
-  side: 'buy' | 'sell'
-  time: string
-}
+export function ForexDashboard() {
+  const searchParams = useSearchParams()
+  const initialPair = searchParams.get('pair') ?? 'EUR/USDT'
+  const initialPrice = parseFloat(searchParams.get('price') ?? '0')
 
-export default function ForexDashboard() {
-  const API_KEY = '210420b658cf4bceaac0150f3e2481ab'
-
-  const [symbol, setSymbol] = useState('EUR/USD')
-  const [tf, setTf] = useState<TF>('1min')
-
+  const [selectedPair, setSelectedPair] = useState(initialPair)
   const [markets, setMarkets] = useState<Market[]>([])
-  const [filteredMarkets, setFilteredMarkets] = useState<Market[]>([])
-  const [price, setPrice] = useState(0)
-  const [change, setChange] = useState(0)
-  const [high24, setHigh24] = useState(0)
-  const [low24, setLow24] = useState(0)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [tf, setTf] = useState<TF>('15m')
+  const [currentPrice, setCurrentPrice] = useState<number>(initialPrice)
+  const [bids, setBids] = useState<[string, string][]>([])
+  const [asks, setAsks] = useState<[string, string][]>([])
 
-  const [trades, setTrades] = useState<Trade[]>([])
-  const [orderBook, setOrderBook] = useState<any[]>([])
+  const symbol = selectedPair.replace('/', '')
 
-  const chartRef = useRef<HTMLDivElement>(null)
+  const chartEl = useRef<HTMLDivElement>(null)
   const chart = useRef<IChartApi | null>(null)
-  const candleSeries = useRef<CandlestickSeries | null>(null)
-  const ws = useRef<WebSocket | null>(null)
-  const lastCandle = useRef<Candle | null>(null)
-  const dayOpen = useRef<number>(0)
+  const candleSeries = useRef<any>(null)
+  const volumeSeries = useRef<any>(null)
+  const candles = useRef<Candle[]>([])
+  const klineWs = useRef<WebSocket | null>(null)
+  const depthWs = useRef<WebSocket | null>(null)
 
-  /* ================= INIT CHART ================= */
+  const forexPairs = [
+    'EURUSDT','GBPUSDT','AUDUSDT','NZDUSDT','USDCAD',
+    'USDCHF','USDJPY','EURGBP','EURJPY','GBPJPY'
+  ]
+
+  /* ================= LIVE MARKET LIST ================= */
   useEffect(() => {
-    if (!chartRef.current) return
+    // Initialize markets
+    setMarkets(forexPairs.map((s) => ({
+      symbol: s.slice(0, -4) + '/USDT',
+      name: s.slice(0, -4),
+      price: 0,
+      change: 0
+    })))
 
-    chart.current = createChart(chartRef.current, {
-      layout: { background: { color: '#0f172a' }, textColor: '#cbd5e1' },
+    const socket = new WebSocket('wss://stream.binance.com:9443/ws/!ticker@arr')
+
+    socket.onmessage = (msg) => {
+      const data = JSON.parse(msg.data) as any[]
+      setMarkets((prev) => {
+        const updated = [...prev]
+        forexPairs.forEach((pair) => {
+          // Find the ticker for this pair
+          const ticker = data.find((t) => t.s.toUpperCase() === pair)
+          if (ticker) {
+            const idx = updated.findIndex((m) => m.symbol === pair.slice(0, -4) + '/USDT')
+            if (idx !== -1) {
+              updated[idx] = {
+                symbol: pair.slice(0, -4) + '/USDT',
+                name: pair.slice(0, -4),
+                price: parseFloat(ticker.c), // latest price
+                change: parseFloat(ticker.P) // percent change
+              }
+              if (updated[idx].symbol === selectedPair) {
+                setCurrentPrice(parseFloat(ticker.c))
+              }
+            }
+          }
+        })
+        return updated
+      })
+    }
+
+    return () => socket.close()
+  }, [selectedPair])
+
+  /* ================= FILTER MARKETS ================= */
+  const filteredMarkets = useMemo(() => {
+    return markets.filter(
+      (m) =>
+        m.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        m.name.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  }, [markets, searchQuery])
+
+  const currentMarket = markets.find((m) => m.symbol === selectedPair)
+
+  /* ================= CHART INIT ================= */
+  useEffect(() => {
+    if (!chartEl.current) return
+    chart.current = createChart(chartEl.current, {
+      layout: { background: { color: '#071225' }, textColor: '#b9c3d6' },
       grid: {
-        vertLines: { color: 'rgba(255,255,255,0.05)' },
-        horzLines: { color: 'rgba(255,255,255,0.05)' },
+        vertLines: { color: 'rgba(255,255,255,0.06)' },
+        horzLines: { color: 'rgba(255,255,255,0.06)' },
       },
-      rightPriceScale: { borderColor: '#334155' },
-      timeScale: { timeVisible: true },
     })
-
-    candleSeries.current = chart.current.addSeries(CandlestickSeries, {
-      upColor: '#22c55e',
-      downColor: '#ef4444',
-      wickUpColor: '#22c55e',
-      wickDownColor: '#ef4444',
+    candleSeries.current = chart.current.addSeries(CandlestickSeries)
+    volumeSeries.current = chart.current.addSeries(HistogramSeries, {
+      priceFormat: { type: 'volume' },
+      priceScaleId: '',
     })
-
     return () => chart.current?.remove()
   }, [])
 
   /* ================= LOAD HISTORY ================= */
   useEffect(() => {
-    async function load() {
-      const res = await fetch(
-        `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${tf}&outputsize=300&apikey=${API_KEY}`
-      )
-      const data = await res.json()
-      if (!data.values) return
-
-      const formatted: Candle[] = data.values
-        .map((c: any) => ({
-          time: Math.floor(new Date(c.datetime).getTime() / 1000) as UTCTimestamp,
-          open: +c.open,
-          high: +c.high,
-          low: +c.low,
-          close: +c.close,
-        }))
-        .reverse()
-
-      candleSeries.current?.setData(formatted)
-
-      const first = formatted[0]
-      const last = formatted[formatted.length - 1]
-
-      lastCandle.current = last
-      dayOpen.current = first.open
-
-      setPrice(last.close)
-      setHigh24(Math.max(...formatted.map(c => c.high)))
-      setLow24(Math.min(...formatted.map(c => c.low)))
-
-      setChange(((last.close - first.open) / first.open) * 100)
+    loadHistory()
+    connectKlineWS()
+    connectDepthWS()
+    return () => {
+      klineWs.current?.close()
+      depthWs.current?.close()
     }
+  }, [selectedPair, tf])
 
-    load()
-  }, [symbol, tf])
-
-  /* ================= FETCH ALL MARKETS ================= */
-  useEffect(() => {
-    async function fetchMarkets() {
-      const res = await fetch(
-        `https://api.twelvedata.com/forex_pairs?apikey=${API_KEY}`
-      )
-      const data = await res.json()
-      if (!data.data) return
-
-      const initialMarkets = data.data.map((pair: any) => ({
-        symbol: pair.symbol,
-        price: 0,
-        change: 0,
-      }))
-
-      setMarkets(initialMarkets)
-      setFilteredMarkets(initialMarkets)
-    }
-
-    fetchMarkets()
-  }, [])
-
-  /* ================= LIVE STREAM ================= */
-  useEffect(() => {
-    if (ws.current) ws.current.close()
-    if (markets.length === 0) return
-
-    ws.current = new WebSocket(`wss://ws.twelvedata.com/v1/quotes/price?apikey=${API_KEY}`)
-
-    ws.current.onopen = () => {
-      ws.current?.send(
-        JSON.stringify({
-          action: 'subscribe',
-          params: { symbols: markets.map(m => m.symbol).join(',') },
-        })
-      )
-    }
-
-    ws.current.onmessage = event => {
-      const data = JSON.parse(event.data)
-      if (!data.price || !data.symbol) return
-
-      const livePrice = parseFloat(data.price)
-
-      // Update Market List
-      setMarkets(prev => {
-        const copy = [...prev]
-        const i = copy.findIndex(m => m.symbol === data.symbol)
-        if (i >= 0) {
-          const prevPrice = copy[i].price || livePrice
-          copy[i] = {
-            symbol: data.symbol,
-            price: livePrice,
-            change: ((livePrice - prevPrice) / prevPrice) * 100,
-          }
-        }
-        return copy
+  async function loadHistory() {
+    const res = await fetch(`/api/binance/klines?symbol=${symbol}&interval=${tf}`)
+    if (!res.ok) return
+    const raw = await res.json()
+    candles.current = raw.map((k: any) => ({
+      time: Math.floor(k[0] / 1000) as UTCTimestamp,
+      open: +k[1],
+      high: +k[2],
+      low: +k[3],
+      close: +k[4],
+      volume: +k[5],
+    }))
+    if (currentPrice > 0) {
+      candles.current.push({
+        time: Math.floor(Date.now() / 1000) as UTCTimestamp,
+        open: currentPrice,
+        high: currentPrice,
+        low: currentPrice,
+        close: currentPrice,
+        volume: 0,
       })
-
-      // Update filtered list too
-      setFilteredMarkets(prev => {
-        const copy = [...prev]
-        const i = copy.findIndex(m => m.symbol === data.symbol)
-        if (i >= 0) copy[i].price = livePrice
-        return copy
-      })
-
-      // Update selected symbol chart
-      if (data.symbol === symbol && lastCandle.current) {
-        setPrice(livePrice)
-        const updated = {
-          ...lastCandle.current,
-          close: livePrice,
-          high: Math.max(lastCandle.current.high, livePrice),
-          low: Math.min(lastCandle.current.low, livePrice),
-        }
-        candleSeries.current?.update(updated)
-        lastCandle.current = updated
-        setChange(((livePrice - dayOpen.current) / dayOpen.current) * 100)
-
-        // Synthetic order book & trades
-        const spread = 0.0002
-        setOrderBook([
-          { bid: livePrice - spread, ask: 0, size: Math.random() * 5 },
-          { bid: livePrice - spread / 2, ask: 0, size: Math.random() * 4 },
-          { bid: 0, ask: livePrice + spread / 2, size: Math.random() * 4 },
-          { bid: 0, ask: livePrice + spread, size: Math.random() * 5 },
-        ])
-        setTrades(prev => [
-          { price: livePrice, size: Math.random() * 2, side: Math.random() > 0.5 ? 'buy' : 'sell', time: new Date().toLocaleTimeString() },
-          ...prev.slice(0, 25),
-        ])
-      }
     }
-
-    return () => ws.current?.close()
-  }, [symbol, markets])
-
-  /* ================= FILTER ================= */
-  const handleSearch = (query: string) => {
-    setFilteredMarkets(
-      markets.filter(m => m.symbol.toLowerCase().includes(query.toLowerCase()))
-    )
+    renderChart(true)
   }
 
-  /* ================= RENDER ================= */
+  function connectKlineWS() {
+    klineWs.current?.close()
+    klineWs.current = new WebSocket(
+      `wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@kline_${tf}`
+    )
+    klineWs.current.onmessage = (e) => {
+      const k = JSON.parse(e.data).k
+      updateCandle({
+        time: Math.floor(k.t / 1000) as UTCTimestamp,
+        open: +k.o,
+        high: +k.h,
+        low: +k.l,
+        close: +k.c,
+        volume: +k.v,
+      })
+      setCurrentPrice(+k.c)
+    }
+  }
+
+  function connectDepthWS() {
+    depthWs.current?.close()
+    depthWs.current = new WebSocket(
+      `wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@depth20@100ms`
+    )
+    depthWs.current.onmessage = (e) => {
+      const data = JSON.parse(e.data)
+      setBids(data.bids)
+      setAsks(data.asks)
+    }
+  }
+
+  function updateCandle(c: Candle) {
+    const last = candles.current[candles.current.length - 1]
+    if (last && last.time === c.time) Object.assign(last, c)
+    else candles.current.push(c)
+    renderChart(false)
+  }
+
+  function renderChart(fit = false) {
+    candleSeries.current?.setData(candles.current)
+    volumeSeries.current?.setData(
+      candles.current.map((c) => ({ time: c.time, value: c.volume }))
+    )
+    if (fit) chart.current?.timeScale().fitContent()
+  }
+
+  /* ================= UI ================= */
   return (
-    <div className="flex h-screen bg-slate-950 text-white">
-
+    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
       {/* LEFT MARKET LIST */}
-      <div className="w-72 border-r border-slate-800 p-3 flex flex-col">
-        <h2 className="font-bold mb-3">Markets</h2>
-        <input
-          type="text"
-          placeholder="Search..."
-          className="mb-2 px-2 py-1 rounded bg-slate-800 text-white"
-          onChange={e => handleSearch(e.target.value)}
-        />
-        <div className="overflow-y-auto flex-1">
-          {filteredMarkets.map(m => (
-            <div
-              key={m.symbol}
-              onClick={() => setSymbol(m.symbol)}
-              className="flex justify-between py-2 cursor-pointer hover:bg-slate-800 px-2 rounded"
-            >
-              <span>{m.symbol}</span>
-              <div className="text-right">
-                <div>{m.price?.toFixed(5)}</div>
-                <div className={`text-xs ${m.change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {m.change.toFixed(2)}%
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* CENTER CHART */}
-      <div className="flex-1 flex flex-col">
-        <div className="p-4 border-b border-slate-800">
-          <div className="text-3xl font-bold text-orange-400">{price.toFixed(5)}</div>
-          <div className={`text-sm font-semibold ${change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-            {change >= 0 ? '▲' : '▼'} {change.toFixed(2)}%
-          </div>
-          <div className="text-sm text-slate-400 mt-1">
-            24h High: {high24.toFixed(5)} | 24h Low: {low24.toFixed(5)}
-          </div>
-          <div className="flex gap-2 mt-3">
-            {(['1min','5min','15min','1h'] as TF[]).map(t => (
+      <div className="lg:col-span-1">
+        <div className="bg-slate-900/50 border border-slate-800 rounded-lg p-4 sticky top-24">
+          <input
+            type="text"
+            placeholder="Search Forex pairs..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white mb-4"
+          />
+          <div className="space-y-2 max-h-[80vh] overflow-y-auto">
+            {filteredMarkets.map((m) => (
               <button
-                key={t}
-                onClick={() => setTf(t)}
-                className={`px-3 py-1 rounded ${tf === t ? 'bg-orange-500' : 'bg-slate-800'}`}
+                key={m.symbol}
+                onClick={() => {
+                  setSelectedPair(m.symbol)
+                  setCurrentPrice(0)
+                }}
+                className={`w-full px-3 py-2 rounded ${
+                  selectedPair === m.symbol
+                    ? 'bg-blue-500/20 border border-blue-500/50'
+                    : 'hover:bg-slate-800'
+                }`}
               >
-                {t}
+                <div className="flex justify-between">
+                  <div>
+                    <div className="text-white text-sm font-medium">{m.name}</div>
+                    <div className="text-slate-400 text-xs">{m.symbol}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-white text-sm">{m.price.toFixed(4)}</div>
+                    <div className={`text-xs ${m.change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {m.change >= 0 ? '+' : ''}{m.change.toFixed(2)}%
+                    </div>
+                  </div>
+                </div>
               </button>
             ))}
           </div>
         </div>
-        <div ref={chartRef} className="flex-1" />
       </div>
 
-      {/* RIGHT SIDE */}
-      <div className="w-72 border-l border-slate-800 p-3 flex flex-col">
-        <h2 className="font-bold mb-2">Order Book</h2>
-        {orderBook.map((o, i) => (
-          <div key={i} className="flex justify-between text-sm py-1">
-            <span className="text-green-400">{o.bid ? o.bid.toFixed(5) : ''}</span>
-            <span className="text-red-400">{o.ask ? o.ask.toFixed(5) : ''}</span>
-            <span>{o.size.toFixed(2)}</span>
+      {/* CENTER CHART */}
+      <div className="lg:col-span-3 bg-slate-900 border border-slate-800 rounded-lg p-6">
+        <div className="mb-4">
+          <div className="text-4xl text-white font-bold">
+            {currentPrice > 0 ? currentPrice.toFixed(4) : '--'}
           </div>
-        ))}
-
-        <h2 className="font-bold mt-4 mb-2">Recent Trades</h2>
-        <div className="flex-1 overflow-auto">
-          {trades.map((t, i) => (
-            <div
-              key={i}
-              className={`flex justify-between text-xs py-1 ${t.side === 'buy' ? 'text-green-400' : 'text-red-400'}`}
+          <div className={`${(currentMarket?.change ?? 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+            {currentMarket ? `${currentMarket.change >= 0 ? '+' : ''}${currentMarket.change.toFixed(2)}%` : '--'}
+          </div>
+        </div>
+        <div className="flex gap-2 mb-4">
+          {(['1m', '15m', '1h', '4h', '1d'] as TF[]).map((x) => (
+            <button
+              key={x}
+              onClick={() => setTf(x)}
+              className={`px-3 py-1 rounded text-sm ${
+                tf === x ? 'bg-orange-500 text-white' : 'bg-slate-800 text-slate-400'
+              }`}
             >
-              <span>{t.time}</span>
-              <span>{t.price.toFixed(5)}</span>
-              <span>{t.size.toFixed(2)}</span>
-            </div>
+              {x}
+            </button>
           ))}
+        </div>
+        <div ref={chartEl} className="h-[600px] w-full" />
+      </div>
+
+      {/* RIGHT ORDER BOOK */}
+      <div className="lg:col-span-1 bg-slate-900 border border-slate-800 rounded-lg p-4">
+        <h3 className="text-white font-semibold mb-4">Order Book</h3>
+        <div className="flex justify-between text-[11px] text-slate-400 mb-2">
+          <span>Price</span>
+          <span>Amount</span>
+        </div>
+        <div className="max-h-[600px] overflow-y-auto text-xs">
+          {asks
+            .slice()
+            .sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]))
+            .map(([price, amount], i) => (
+              <div key={`ask-${i}`} className="flex justify-between text-red-400 py-[2px]">
+                <span>{parseFloat(price).toFixed(4)}</span>
+                <span>{parseFloat(amount).toFixed(6)}</span>
+              </div>
+            ))}
+          <div className="border-t border-slate-700 my-2"></div>
+          {bids
+            .slice()
+            .sort((a, b) => parseFloat(b[0]) - parseFloat(a[0]))
+            .map(([price, amount], i) => (
+              <div key={`bid-${i}`} className="flex justify-between text-green-400 py-[2px]">
+                <span>{parseFloat(price).toFixed(4)}</span>
+                <span>{parseFloat(amount).toFixed(6)}</span>
+              </div>
+            ))}
         </div>
       </div>
     </div>

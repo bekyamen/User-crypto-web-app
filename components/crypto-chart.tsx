@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useMemo } from 'react'
+import { useSearchParams } from 'next/navigation'
 import {
   createChart,
   CandlestickSeries,
@@ -29,10 +30,14 @@ interface Market {
 
 export function CryptoDashboard() {
   /* ================= STATE ================= */
-  const [selectedPair, setSelectedPair] = useState('BTC/USDT')
+  const searchParams = useSearchParams()
+  const initialPair = searchParams.get('pair') ?? 'BTC/USDT'
+  const initialPrice = parseFloat(searchParams.get('price') ?? '0')
+  const [selectedPair, setSelectedPair] = useState(initialPair)
   const [markets, setMarkets] = useState<Market[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [tf, setTf] = useState<TF>('15m')
+  const [currentPrice, setCurrentPrice] = useState<number>(initialPrice)
 
   const [bids, setBids] = useState<[string, string][]>([])
   const [asks, setAsks] = useState<[string, string][]>([])
@@ -50,10 +55,8 @@ export function CryptoDashboard() {
   /* ================= LIVE MARKET LIST ================= */
   useEffect(() => {
     const socket = new WebSocket('wss://stream.binance.com:9443/ws/!ticker@arr')
-
     socket.onmessage = (msg) => {
       const data = JSON.parse(msg.data) as any[]
-
       const marketList: Market[] = data
         .filter((t) => t.s.endsWith('USDT'))
         .map((t) => ({
@@ -62,12 +65,14 @@ export function CryptoDashboard() {
           price: parseFloat(t.c),
           change: parseFloat(t.P),
         }))
-
       setMarkets(marketList)
+      const selectedMarket = marketList.find((m) => m.symbol === selectedPair)
+      if (selectedMarket && currentPrice === 0) {
+        setCurrentPrice(selectedMarket.price)
+      }
     }
-
     return () => socket.close()
-  }, [])
+  }, [selectedPair, currentPrice])
 
   /* ================= FILTER MARKETS ================= */
   const filteredMarkets = useMemo(() => {
@@ -83,7 +88,6 @@ export function CryptoDashboard() {
   /* ================= CHART INIT ================= */
   useEffect(() => {
     if (!chartEl.current) return
-
     chart.current = createChart(chartEl.current, {
       layout: { background: { color: '#071225' }, textColor: '#b9c3d6' },
       grid: {
@@ -91,13 +95,11 @@ export function CryptoDashboard() {
         horzLines: { color: 'rgba(255,255,255,0.06)' },
       },
     })
-
     candleSeries.current = chart.current.addSeries(CandlestickSeries)
     volumeSeries.current = chart.current.addSeries(HistogramSeries, {
       priceFormat: { type: 'volume' },
       priceScaleId: '',
     })
-
     return () => chart.current?.remove()
   }, [])
 
@@ -115,7 +117,6 @@ export function CryptoDashboard() {
   async function loadHistory() {
     const res = await fetch(`/api/binance/klines?symbol=${symbol}&interval=${tf}`)
     if (!res.ok) return
-
     const raw = await res.json()
     candles.current = raw.map((k: any) => ({
       time: Math.floor(k[0] / 1000) as UTCTimestamp,
@@ -125,17 +126,24 @@ export function CryptoDashboard() {
       close: +k[4],
       volume: +k[5],
     }))
-
+    if (initialPrice > 0) {
+      candles.current.push({
+        time: Math.floor(Date.now() / 1000) as UTCTimestamp,
+        open: initialPrice,
+        high: initialPrice,
+        low: initialPrice,
+        close: initialPrice,
+        volume: 0,
+      })
+    }
     renderChart(true)
   }
 
   function connectKlineWS() {
     klineWs.current?.close()
-
     klineWs.current = new WebSocket(
       `wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@kline_${tf}`
     )
-
     klineWs.current.onmessage = (e) => {
       const k = JSON.parse(e.data).k
       updateCandle({
@@ -146,16 +154,15 @@ export function CryptoDashboard() {
         close: +k.c,
         volume: +k.v,
       })
+      setCurrentPrice(+k.c)
     }
   }
 
   function connectDepthWS() {
     depthWs.current?.close()
-
     depthWs.current = new WebSocket(
       `wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@depth20@100ms`
     )
-
     depthWs.current.onmessage = (e) => {
       const data = JSON.parse(e.data)
       setBids(data.bids)
@@ -167,7 +174,6 @@ export function CryptoDashboard() {
     const last = candles.current[candles.current.length - 1]
     if (last && last.time === c.time) Object.assign(last, c)
     else candles.current.push(c)
-
     renderChart(false)
   }
 
@@ -176,15 +182,13 @@ export function CryptoDashboard() {
     volumeSeries.current?.setData(
       candles.current.map((c) => ({ time: c.time, value: c.volume }))
     )
-
     if (fit) chart.current?.timeScale().fitContent()
   }
 
   /* ================= UI ================= */
   return (
     <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-
-      {/* ===== LEFT MARKET LIST ===== */}
+      {/* LEFT MARKET LIST */}
       <div className="lg:col-span-1">
         <div className="bg-slate-900/50 border border-slate-800 rounded-lg p-4 sticky top-24">
           <input
@@ -199,7 +203,10 @@ export function CryptoDashboard() {
             {filteredMarkets.map((m) => (
               <button
                 key={m.symbol}
-                onClick={() => setSelectedPair(m.symbol)}
+                onClick={() => {
+                  setSelectedPair(m.symbol)
+                  setCurrentPrice(0) // reset price when selecting manually
+                }}
                 className={`w-full px-3 py-2 rounded ${
                   selectedPair === m.symbol
                     ? 'bg-blue-500/20 border border-blue-500/50'
@@ -224,11 +231,11 @@ export function CryptoDashboard() {
         </div>
       </div>
 
-      {/* ===== CENTER CHART ===== */}
+      {/* CENTER CHART */}
       <div className="lg:col-span-3 bg-slate-900 border border-slate-800 rounded-lg p-6">
         <div className="mb-4">
           <div className="text-4xl text-white font-bold">
-            {currentMarket?.price?.toFixed(4) ?? '--'}
+            {currentPrice > 0 ? currentPrice.toFixed(4) : '--'}
           </div>
           <div className={`${(currentMarket?.change ?? 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
             {currentMarket ? `${currentMarket.change >= 0 ? '+' : ''}${currentMarket.change.toFixed(2)}%` : '--'}
@@ -252,18 +259,15 @@ export function CryptoDashboard() {
         <div ref={chartEl} className="h-[600px] w-full" />
       </div>
 
-      {/* ===== RIGHT ORDER BOOK ===== */}
+      {/* RIGHT ORDER BOOK */}
       <div className="lg:col-span-1 bg-slate-900 border border-slate-800 rounded-lg p-4">
         <h3 className="text-white font-semibold mb-4">Order Book</h3>
-
         <div className="flex justify-between text-[11px] text-slate-400 mb-2">
           <span>Price</span>
           <span>Amount</span>
         </div>
 
         <div className="max-h-[600px] overflow-y-auto text-xs">
-
-          {/* ASKS (Sell - Red) */}
           {asks
             .slice()
             .sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]))
@@ -276,7 +280,6 @@ export function CryptoDashboard() {
 
           <div className="border-t border-slate-700 my-2"></div>
 
-          {/* BIDS (Buy - Green) */}
           {bids
             .slice()
             .sort((a, b) => parseFloat(b[0]) - parseFloat(a[0]))
