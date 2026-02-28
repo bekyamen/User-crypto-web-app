@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { AlertCircle, CheckCircle } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { useAuth } from '@/hooks/useAuth'
@@ -19,12 +19,9 @@ interface NetworkInfo {
   value: string
   label: string
   description: string
-  fee: number // Added fee as number for calculation
+  fee: number
 }
 
-// =============================
-// Withdraw networks configuration
-// =============================
 const networks: Record<string, NetworkInfo[]> = {
   BTC: [
     {
@@ -64,35 +61,44 @@ export default function WithdrawPage() {
 
   const [balance, setBalance] = useState<number>(0)
   const [selectedCoin, setSelectedCoin] = useState<'BTC' | 'ETH' | 'USDT'>('BTC')
-  const [selectedNetwork, setSelectedNetwork] = useState<NetworkInfo>(networks['BTC'][0])
+  const [selectedNetwork, setSelectedNetwork] = useState(networks['BTC'][0])
   const [address, setAddress] = useState('')
   const [amount, setAmount] = useState('')
+
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+
   const [history, setHistory] = useState<WithdrawHistoryItem[]>([])
   const [loadingHistory, setLoadingHistory] = useState(false)
 
+  const [priceBTC, setPriceBTC] = useState<number | null>(null)
+  const [priceETH, setPriceETH] = useState<number | null>(null)
+  const [loadingPrice, setLoadingPrice] = useState(true)
+
   // =============================
-  // Fetch User Balance
+  // Fetch Balance
   // =============================
   useEffect(() => {
     const fetchBalance = async () => {
       if (!session?.user) return
       try {
-        const token = (session as any)?.accessToken
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
+        const accessToken = (session as any)?.accessToken
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/user/me`,
+          {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          }
+        )
         const data = await res.json()
         if (data.success && data.data?.balance !== undefined) {
           setBalance(Number(data.data.balance))
         }
       } catch (err) {
-        console.error('Failed to fetch balance:', err)
-        setBalance(0)
+        console.error(err)
       }
     }
+
     fetchBalance()
   }, [session])
 
@@ -103,9 +109,12 @@ export default function WithdrawPage() {
     if (!token) return
     try {
       setLoadingHistory(true)
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/withdraw/my`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/withdraw/my`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      )
       const data = await res.json()
       if (!res.ok) throw new Error(data.message)
       setHistory(data.data || [])
@@ -121,12 +130,65 @@ export default function WithdrawPage() {
   }, [token])
 
   // =============================
+  // Fetch Prices
+  // =============================
+  useEffect(() => {
+    const fetchPrices = async () => {
+      try {
+        setLoadingPrice(true)
+        const res = await fetch('/api/prices')
+        const data = await res.json()
+        if (data.btc) setPriceBTC(data.btc)
+        if (data.eth) setPriceETH(data.eth)
+      } catch (err) {
+        console.error(err)
+      } finally {
+        setLoadingPrice(false)
+      }
+    }
+
+    fetchPrices()
+    const interval = setInterval(fetchPrices, 60000)
+    return () => clearInterval(interval)
+  }, [])
+
+  // =============================
+  // Conversion Logic
+  // =============================
+  const netReceive = useMemo(() => {
+    const amt = Number(amount)
+    if (!amt || amt <= 0) return 0
+
+    if (selectedCoin === 'USDT') {
+      return Math.max(amt - selectedNetwork.fee, 0)
+    }
+
+    if (selectedCoin === 'BTC' && priceBTC) {
+      return Math.max(amt / priceBTC - selectedNetwork.fee, 0)
+    }
+
+    if (selectedCoin === 'ETH' && priceETH) {
+      return Math.max(amt / priceETH - selectedNetwork.fee, 0)
+    }
+
+    return 0
+  }, [amount, selectedCoin, selectedNetwork, priceBTC, priceETH])
+
+  // =============================
   // Handle Withdraw
   // =============================
   const handleWithdraw = async () => {
     if (!token) return
-    if (!address || !amount) {
-      setError('Please fill all fields')
+
+    const amt = Number(amount)
+
+    if (!address || !amt || amt <= 0) {
+      setError('Please enter valid details')
+      return
+    }
+
+    if (amt > balance) {
+      setError('Insufficient balance')
       return
     }
 
@@ -135,42 +197,30 @@ export default function WithdrawPage() {
       setError(null)
       setSuccess(null)
 
-      // Fetch real balance
-      const balanceRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      const balanceData = await balanceRes.json()
-      if (!balanceRes.ok || !balanceData.success) throw new Error(balanceData.message || 'Failed to verify balance')
-
-      const realBalance = Number(balanceData.data.balance)
-      if (Number(amount) > realBalance) {
-        setError('Insufficient balance')
-        setBalance(realBalance)
-        return
-      }
-
-      // Withdraw request
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/withdraw`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          coin: selectedCoin,
-          network: selectedNetwork.value,
-          address,
-          amount: Number(amount),
-        }),
-      })
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/withdraw`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            coin: selectedCoin,
+            network: selectedNetwork.value,
+            address,
+            amount: amt,
+          }),
+        }
+      )
 
       const data = await res.json()
-      if (!res.ok) throw new Error(data.message || 'Withdrawal failed')
+      if (!res.ok) throw new Error(data.message)
 
       setSuccess('Withdrawal request submitted successfully!')
+      setBalance((prev) => prev - amt)
       setAddress('')
       setAmount('')
-      setBalance(realBalance - Number(amount))
       fetchHistory()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Withdrawal failed')
@@ -179,33 +229,26 @@ export default function WithdrawPage() {
     }
   }
 
-  // =============================
-  // Update network when coin changes
-  // =============================
   useEffect(() => {
     setSelectedNetwork(networks[selectedCoin][0])
   }, [selectedCoin])
 
-  // =============================
-  // Calculate net receive after fee
-  // =============================
-  const netReceive = amount ? Math.max(Number(amount) - selectedNetwork.fee, 0) : 0
-
   return (
     <div className="min-h-screen bg-slate-950 text-white">
       <div className="max-w-2xl mx-auto p-6 space-y-6">
+
         <h1 className="text-2xl font-bold">Withdraw Crypto</h1>
 
-        {/* Available Balance */}
         <div className="bg-slate-800 border border-slate-700 rounded-lg p-5">
           <p className="text-slate-400 text-sm">Available Balance</p>
           <p className="text-3xl font-bold mt-1">${balance.toFixed(2)}</p>
         </div>
 
-        {/* Coin Selector */}
         <select
           value={selectedCoin}
-          onChange={(e) => setSelectedCoin(e.target.value as 'BTC' | 'ETH' | 'USDT')}
+          onChange={(e) =>
+            setSelectedCoin(e.target.value as 'BTC' | 'ETH' | 'USDT')
+          }
           className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3"
         >
           <option value="BTC">BTC - Bitcoin</option>
@@ -213,33 +256,6 @@ export default function WithdrawPage() {
           <option value="USDT">USDT - Tether</option>
         </select>
 
-        {/* Network Cards */}
-        <div className="mt-4 space-y-3">
-          {networks[selectedCoin].map((network) => {
-            const isSelected = selectedNetwork.value === network.value
-            return (
-              <div
-                key={network.value}
-                onClick={() => setSelectedNetwork(network)}
-                className={`cursor-pointer rounded-xl border p-4 transition-all ${
-                  isSelected
-                    ? 'bg-blue-500/10 border-blue-500 shadow-lg shadow-blue-500/20'
-                    : 'bg-slate-800 border-slate-700 hover:border-slate-500'
-                }`}
-              >
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="font-semibold">{network.label}</p>
-                    <p className="text-xs text-slate-400 mt-1">{network.description}</p>
-                  </div>
-                  {isSelected && <div className="text-blue-400 text-lg">✓</div>}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-
-        {/* Address */}
         <input
           type="text"
           placeholder="Withdrawal address"
@@ -248,23 +264,22 @@ export default function WithdrawPage() {
           className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3"
         />
 
-        {/* Amount */}
         <input
           type="number"
-          placeholder="Amount"
+          placeholder="Amount (USDT)"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3"
         />
 
-        {/* Net Receive */}
         {amount && (
-          <p className="text-xs text-slate-400 mt-1">
-            You will receive: {netReceive.toFixed(6)} {selectedCoin}
+          <p className="text-xs text-slate-400">
+            {loadingPrice
+              ? 'Fetching live rate...'
+              : `You will receive: ${netReceive.toFixed(8)} ${selectedCoin} (after fee)`}
           </p>
         )}
 
-        {/* Error / Success */}
         {error && (
           <div className="bg-red-500/10 border border-red-500/30 p-3 rounded-lg flex gap-2">
             <AlertCircle size={18} className="text-red-400" />
@@ -287,9 +302,10 @@ export default function WithdrawPage() {
           {loading ? 'Processing...' : 'Withdraw'}
         </button>
 
-        {/* Withdrawal History */}
+        {/* ================= Withdrawal History ================= */}
         <div className="mt-8">
           <h2 className="text-lg font-semibold mb-4">Withdrawal History</h2>
+
           {loadingHistory ? (
             <p className="text-slate-400">Loading...</p>
           ) : history.length === 0 ? (
@@ -303,8 +319,12 @@ export default function WithdrawPage() {
                 <p className="font-semibold">
                   {item.amount} {item.coin} ({item.network})
                 </p>
-                <p className="text-xs text-slate-400">{item.address}</p>
-                <p className="text-xs text-slate-400">Status: {item.status}</p>
+                <p className="text-xs text-slate-400 break-all">
+                  {item.address}
+                </p>
+                <p className="text-xs text-slate-400">
+                  Status: {item.status}
+                </p>
                 <p className="text-xs text-slate-500">
                   {new Date(item.createdAt).toLocaleString()}
                 </p>
@@ -312,6 +332,7 @@ export default function WithdrawPage() {
             ))
           )}
         </div>
+
       </div>
     </div>
   )
