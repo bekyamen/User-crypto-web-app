@@ -31,7 +31,7 @@ interface Market {
 export function ForexDashboard() {
   const searchParams = useSearchParams()
   const initialPair = searchParams.get('pair') ?? 'EUR/USDT'
-  const initialPrice = parseFloat(searchParams.get('price') ?? '0')
+  const initialPrice = parseFloat(searchParams.get('price') ?? '--')
 
   const [selectedPair, setSelectedPair] = useState(initialPair)
   const [markets, setMarkets] = useState<Market[]>([])
@@ -52,8 +52,8 @@ export function ForexDashboard() {
   const depthWs = useRef<WebSocket | null>(null)
 
   const forexPairs = [
-    'EURUSDT','GBPUSDT','AUDUSDT','NZDUSDT','USDCAD',
-    'USDCHF','USDJPY','EURGBP','EURJPY','GBPJPY'
+    'EURUSDT','GBPUSDT','AUDUSDT','NZDUSDT',
+    'USDJPY','EURGBP','GBPJPY'
   ]
 
   /* ================= LIVE MARKET LIST ================= */
@@ -241,10 +241,22 @@ export function ForexDashboard() {
                     <div className="text-slate-400 text-xs">{m.symbol}</div>
                   </div>
                   <div className="text-right">
-                    <div className="text-white text-sm">{m.price.toFixed(4)}</div>
-                    <div className={`text-xs ${m.change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                      {m.change >= 0 ? '+' : ''}{m.change.toFixed(2)}%
-                    </div>
+                   <div className="text-white text-sm">
+  {m.price > 0 ? m.price.toFixed(4) : '--'}
+</div>
+                   <div
+  className={`text-xs ${
+    m.price > 0
+      ? m.change >= 0
+        ? 'text-green-400'
+        : 'text-red-400'
+      : 'text-slate-500'
+  }`}
+>
+  {m.price > 0
+    ? `${m.change >= 0 ? '+' : ''}${m.change.toFixed(2)}%`
+    : '--'}
+</div>
                   </div>
                 </div>
               </button>

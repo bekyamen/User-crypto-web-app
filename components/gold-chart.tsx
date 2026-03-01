@@ -33,7 +33,7 @@ interface Trade {
 type MarketSymbol = 'XAU/USD' | 'XAU/EUR' | 'XAU/GBP'
 
 export default function GoldDashboard() {
-  const API_KEY = '210420b658cf4bceaac0150f3e2481ab'
+  const API_KEY = 'a0438f8d465f4dc6a8c4689e9b84281c'
 
   const GOLD_SYMBOLS: MarketSymbol[] = ['XAU/USD', 'XAU/EUR', 'XAU/GBP']
 
