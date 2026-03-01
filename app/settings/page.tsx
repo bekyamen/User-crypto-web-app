@@ -24,7 +24,7 @@ export default function SettingsPage() {
   ]
 
   const [activeTab, setActiveTab] = useState<string>('dashboard')
-  const [balance] = useState(0)
+  const [balance, setBalance] = useState(0) // make balance stateful
   const [verificationStatus, setVerificationStatus] = useState<VerificationStatus>(null)
   const [securityScore, setSecurityScore] = useState(25)
   const [copiedCode, setCopiedCode] = useState(false)
@@ -66,6 +66,28 @@ export default function SettingsPage() {
   useEffect(() => {
     fetchVerification()
   }, [token])
+
+  useEffect(() => {
+  const fetchBalance = async () => {
+    if (!token) return
+
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/user/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+
+      const data = await res.json()
+      if (data.success && data.data?.balance !== undefined) {
+        setBalance(Number(data.data.balance))
+      }
+    } catch (err) {
+      console.error("Failed to fetch balance:", err)
+      setBalance(0)
+    }
+  }
+
+  fetchBalance()
+}, [token])
 
   useEffect(() => {
     if (!verificationStatus) setSecurityScore(25)
@@ -111,13 +133,13 @@ export default function SettingsPage() {
                   <h2 className="text-lg font-semibold">Portfolio Performance</h2>
                 </div>
                 <div className="space-y-6">
-                  <div>
-                    <p className="text-slate-400 text-sm mb-2">Total Balance</p>
-                    <p className="text-3xl font-bold">
-                      ${balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </p>
-                    <p className="text-slate-400 text-xs">Available Funds</p>
-                  </div>
+                 <div>
+  <p className="text-slate-400 text-sm mb-2">Total Balance</p>
+  <p className="text-3xl font-bold">
+    ${balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+  </p>
+  <p className="text-slate-400 text-xs">Available Funds</p>
+</div>
                 </div>
               </div>
 
