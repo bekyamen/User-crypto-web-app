@@ -60,12 +60,13 @@ export default function SecurityPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
+   
+     <div className="min-h-screen bg-slate-900 p-6 text-white">
       {/* Header */}
       
 
       {/* Main Content */}
-      <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      <main className="min-h-screen bg-slate-900 p-6 text-white">
         {/* Change Password Header */}
         <div className="border border-slate-700/50 rounded-lg p-6 bg-slate-800/20 text-center">
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-500/20 flex items-center justify-center">

@@ -163,7 +163,7 @@ export default function IdentityVerificationPage() {
   // Render
   // =============================
   return (
-    <div className="min-h-screen bg-slate-950 text-white px-4 py-8 max-w-4xl mx-auto">
+    <div className="min-h-screen bg-slate-900 p-6 text-white">
       <h1 className="text-2xl font-bold mb-6">Identity Verification</h1>
 
       {verification ? (

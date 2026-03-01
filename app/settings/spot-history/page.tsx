@@ -6,6 +6,7 @@ import {
   TrendingUp,
   ArrowUpRight,
 } from 'lucide-react'
+
 import { useAuth } from '@/hooks/useAuth'
 
 type BaseTransaction = {
@@ -126,8 +127,8 @@ export default function SpotHistoryPage() {
   }, [activeTab, currentPage, rowsPerPage, token])
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
-      <main className="max-w-7xl mx-auto px-6 py-10 space-y-6">
+   <div className="min-h-screen bg-slate-900 p-6 text-white">
+      <main className="min-h-screen bg-slate-900 p-6 text-white">
         <div>
           <h1 className="text-2xl font-bold">Spot History</h1>
           <p className="text-slate-400 text-sm">
