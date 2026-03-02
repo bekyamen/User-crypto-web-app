@@ -30,13 +30,20 @@ export function Hero() {
             </div>
 
             {/* Title */}
-            <h1 className="font-display text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.1] tracking-tight">
-              <span className="text-gradient-hero">Trade</span>{' '}
-              <span className="text-gradient-hero">Smarter</span>
-              <span className="text-foreground">,</span>
-              <br />
-              <span className="text-foreground italic font-bold">Not Harder</span>
-            </h1>
+              {/* Hero Text */}
+      <h1 className="font-display text-6xl md:text-7xl lg:text-8xl font-extrabold leading-[1.05] tracking-tight text-center drop-shadow-[0_0_25px_rgba(255,204,0,0.8)]">
+        <span className="bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 animate-gradient-x">
+          Trade
+        </span>{' '}
+        <span className="bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 animate-gradient-x delay-150">
+          Smarter
+        </span>
+        <span className="text-foreground">,</span>
+        <br />
+        <span className="text-white italic font-extrabold drop-shadow-lg">
+          Not Harder
+        </span>
+      </h1>
 
             {/* Orange underline */}
             <div className="w-40 h-1 rounded-full bg-primary" />
