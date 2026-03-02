@@ -42,8 +42,8 @@ export default function Header({ notifications = [] }: HeaderProps) {
             <Image
               src="/newlogo-removebg-preview.png"
               alt="Bit Trading Logo"
-              width={160}
-              height={160}
+              width={190}
+              height={190}
               className="rounded-lg"
               priority
             />
