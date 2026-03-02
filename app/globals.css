@@ -156,3 +156,169 @@
 }
 
 
+
+
+
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222 47% 8%;
+    --foreground: 210 40% 98%;
+
+    --card: 222 47% 11%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 28 100% 55%;
+    --primary-foreground: 222 47% 8%;
+
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217 33% 14%;
+    --muted-foreground: 215 20% 55%;
+
+    --accent: 28 100% 55%;
+    --accent-foreground: 222 47% 8%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217 33% 18%;
+    --input: 217 33% 18%;
+    --ring: 28 100% 55%;
+
+    --radius: 0.75rem;
+
+    --hero-gradient-start: 222 47% 6%;
+    --hero-gradient-mid: 222 47% 10%;
+    --hero-gradient-end: 220 50% 14%;
+
+    --glow-orange: 28 100% 55%;
+    --glow-blue: 217 91% 60%;
+    --coin-gold: 45 100% 50%;
+    --coin-gold-dark: 40 80% 35%;
+
+    --sidebar-background: 222 47% 8%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 28 100% 55%;
+    --sidebar-primary-foreground: 222 47% 8%;
+    --sidebar-accent: 217 33% 17%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217 33% 18%;
+    --sidebar-ring: 28 100% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+ body {
+  @apply bg-background text-foreground antialiased;
+  font-family: 'Inter', sans-serif;
+}
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Space Grotesk', sans-serif;
+  }
+}
+
+@layer utilities {
+  .text-gradient-hero {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(180deg, hsl(25 80% 75%) 0%, hsl(15 70% 55%) 100%);
+  }
+
+  .text-glow-blue {
+    color: hsl(var(--glow-blue));
+  }
+
+  .badge-border {
+    border: 1px solid hsl(var(--glow-blue) / 0.3);
+    background: hsl(var(--glow-blue) / 0.08);
+  }
+
+  .feature-chip {
+    @apply inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm;
+    border: 1px solid hsl(var(--border));
+    background: hsl(var(--secondary) / 0.5);
+    color: hsl(var(--foreground) / 0.85);
+  }
+
+  .coin-shadow {
+    box-shadow: 0 0 60px 20px hsl(var(--coin-gold) / 0.15),
+                0 0 120px 40px hsl(var(--coin-gold) / 0.05);
+  }
+
+  .glow-orange {
+    box-shadow: 0 0 40px 10px hsl(var(--glow-orange) / 0.2);
+  }
+}
+
+@keyframes spin-slow {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes spin-reverse {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(-360deg); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.05); }
+}
+
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
