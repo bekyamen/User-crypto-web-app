@@ -10,16 +10,16 @@ const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: 'BitorynFX Trading - ',
+  title: 'BitorynFX Trading  ',
   description: 'Professional trading platform for cryptocurrencies, forex, and commodities with institutional-grade tools and lightning-fast execution.',
-  generator: 'v0.app',
+  generator: 'our app',
   icons: {
     icon: [
-      { url: '/icon-light-32x32.png', media: '(prefers-color-scheme: light)' },
-      { url: '/icon-dark-32x32.png', media: '(prefers-color-scheme: dark)' },
-      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/iconlogo.jpg', media: '(prefers-color-scheme: light)' },
+      { url: '/iconlogo.jpg', media: '(prefers-color-scheme: dark)' },
+      { url: '/iconlogo.jpg', type: 'image/svg+xml' },
     ],
-    apple: '/apple-icon.png',
+    apple: '/iconlogo.jpg',
   },
 }
 
