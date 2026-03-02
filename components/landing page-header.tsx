@@ -1,4 +1,5 @@
 'use client'
+
 import Image from "next/image";
 import Link from "next/link";
 
@@ -9,22 +10,22 @@ import { ChevronDown, LogOut } from 'lucide-react'
 export function Header() {
   const { data: session } = useSession()
 
+  
   return (
     <header className="sticky top-0 z-50 bg-slate-900/80 backdrop-blur border-b border-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
          <Link href="/" className="flex items-center gap-2">
-  <Image
-    src="/logo.jpg"
-    alt="Bit Trading Logo"
-    width={120}
-    height={120}
-    className="rounded-lg"
-    priority
-  />
-
-</Link>
+            <Image
+              src="/newlogo-removebg-preview.png"
+              alt="Bit Trading Logo"
+              width={190}
+              height={190}
+              className="rounded-lg"
+              priority
+            />
+          </Link>
 
           {/* Nav Items */}
           <nav className="hidden md:flex items-center gap-8">

@@ -40,10 +40,10 @@ export default function Header({ notifications = [] }: HeaderProps) {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
             <Image
-              src="/logo.jpg"
+              src="/newlogo-removebg-preview.png"
               alt="Bit Trading Logo"
-              width={120}
-              height={120}
+              width={160}
+              height={160}
               className="rounded-lg"
               priority
             />
