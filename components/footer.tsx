@@ -1,23 +1,27 @@
 import Link from 'next/link'
 import { Mail } from 'lucide-react'
+import Image from 'next/image'
 
 export function Footer() {
   const currentYear = new Date().getFullYear()
 
   return (
-    <footer className="border-t border-slate-800 bg-slate-900/50 py-12 px-4 sm:px-6 lg:px-8">
+    <footer className="border-t border-slate-800 bg-slate-900/70 py-16 px-6 sm:px-8 lg:px-12">
       <div className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
           {/* Brand */}
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-orange-500 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">₿</span>
-              </div>
-              <span className="text-lg font-bold bg-gradient-to-r from-blue-400 to-orange-400 bg-clip-text text-transparent">
-                Bit Trading
-              </span>
-            </div>
+          <div className="flex flex-col">
+            <Link href="/" className="flex items-center gap-1 mb-4">
+              <Image
+                src="/newlogo-removebg-preview.png"
+                alt="Bit Trading Logo"
+                width={200}
+                height={260}
+                className="rounded-lg"
+                priority
+              />
+              <span className="text-xl font-bold text-white">BitorynFX Trading</span>
+            </Link>
             <p className="text-sm text-slate-400">
               Professional trading platform for cryptocurrencies, forex, and commodities.
             </p>
@@ -29,26 +33,16 @@ export function Footer() {
               Quick Links
             </h3>
             <ul className="space-y-2 text-sm">
-              <li>
-                <Link href="#" className="text-slate-400 hover:text-white transition flex items-center gap-2">
-                  <span>Trade</span>
-                </Link>
-              </li>
-              <li>
-                <Link href="#" className="text-slate-400 hover:text-white transition flex items-center gap-2">
-                  <span>Market</span>
-                </Link>
-              </li>
-              <li>
-                <Link href="#" className="text-slate-400 hover:text-white transition flex items-center gap-2">
-                  <span>News</span>
-                </Link>
-              </li>
-              <li>
-                <Link href="#" className="text-slate-400 hover:text-white transition flex items-center gap-2">
-                  <span>Help Center</span>
-                </Link>
-              </li>
+              {['Trade', 'Market', 'News', 'Help Center'].map((link) => (
+                <li key={link}>
+                  <Link
+                    href="#"
+                    className="text-slate-400 hover:text-white transition-colors duration-200 flex items-center gap-2"
+                  >
+                    {link}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
@@ -58,26 +52,16 @@ export function Footer() {
               Services
             </h3>
             <ul className="space-y-2 text-sm">
-              <li>
-                <Link href="#" className="text-slate-400 hover:text-white transition">
-                  Deposit
-                </Link>
-              </li>
-              <li>
-                <Link href="#" className="text-slate-400 hover:text-white transition">
-                  Withdraw
-                </Link>
-              </li>
-              <li>
-                <Link href="#" className="text-slate-400 hover:text-white transition">
-                  Identity Verification
-                </Link>
-              </li>
-              <li>
-                <Link href="#" className="text-slate-400 hover:text-white transition">
-                  Trade History
-                </Link>
-              </li>
+              {['Deposit', 'Withdraw', 'Identity Verification', 'Trade History'].map((service) => (
+                <li key={service}>
+                  <Link
+                    href="#"
+                    className="text-slate-400 hover:text-white transition-colors duration-200"
+                  >
+                    {service}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
@@ -93,9 +77,12 @@ export function Footer() {
               <input
                 type="email"
                 placeholder="Enter your email"
-                className="flex-1 px-4 py-2 rounded-lg bg-slate-800/50 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 px-4 py-2 rounded-lg bg-slate-800/50 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
               />
-              <button className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg transition flex items-center justify-center">
+              <button
+                type="submit"
+                className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg transition-all duration-200 flex items-center justify-center"
+              >
                 <Mail className="w-4 h-4" />
               </button>
             </form>
@@ -106,18 +93,18 @@ export function Footer() {
         <div className="border-t border-slate-700 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-sm text-slate-500">
             © {currentYear}-{currentYear + 1}{' '}
-            <span className="text-blue-400 font-semibold">Bit trading</span>. All rights reserved.
+            <span className="text-blue-400 font-semibold">BitorynFX Trading</span>. All rights reserved.
           </p>
           <div className="flex gap-6 text-sm">
-            <Link href="#" className="text-slate-400 hover:text-white transition">
-              Terms of Service
-            </Link>
-            <Link href="#" className="text-slate-400 hover:text-white transition">
-              Privacy Policy
-            </Link>
-            <Link href="#" className="text-slate-400 hover:text-white transition">
-              Support
-            </Link>
+            {['Terms of Service', 'Privacy Policy', 'Support'].map((item) => (
+              <Link
+                key={item}
+                href="#"
+                className="text-slate-400 hover:text-white transition-colors duration-200"
+              >
+                {item}
+              </Link>
+            ))}
           </div>
         </div>
       </div>
