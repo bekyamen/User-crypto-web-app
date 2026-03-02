@@ -27,7 +27,9 @@ export interface TradeResult {
   profitLossPercent: number
   timestamp: string
   completedAt: string
-  newBalance: number 
+  newBalance: number
+   purchasePrice: number // exact buy price
+  sellingPrice: number  // exact sell price
 }
 
 export interface ApiResponse<T> {
