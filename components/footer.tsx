@@ -13,14 +13,14 @@ export function Footer() {
           <div className="flex flex-col">
             <Link href="/" className="flex items-center gap-1 mb-4">
               <Image
-                src="/newlogo-removebg-preview.png"
+                src="/footerlogo.jpg"
                 alt="Bit Trading Logo"
                 width={200}
                 height={260}
                 className="rounded-lg"
                 priority
               />
-              <span className="text-xl font-bold text-white">BitorynFX Trading</span>
+             
             </Link>
             <p className="text-sm text-slate-400">
               Professional trading platform for cryptocurrencies, forex, and commodities.
