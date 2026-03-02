@@ -99,45 +99,57 @@ export function Hero() {
         </div>
 
         {/* Bitcoin Visualization */}
-        <div className="relative max-w-3xl mx-auto">
-          <div className="relative w-64 h-64 mx-auto">
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div
-                className="w-full h-full border-2 border-slate-700 rounded-full relative"
-                style={{ animation: 'spin 12s linear infinite' }}
-              >
-                {/* Orbiting dots */}
-                {dots.map(dot => (
-                  <div
-                    key={dot.id}
-                    className="absolute rounded-full bg-blue-400"
-                    style={{
-                      width: `${dot.size}rem`,
-                      height: `${dot.size}rem`,
-                      animation: `orbit${dot.id} ${dot.speed}s linear infinite, pulse${dot.id} 2s ease-in-out infinite alternate`
-                    }}
-                  />
-                ))}
+         <div className="relative max-w-4xl mx-auto flex items-center justify-center py-20">
 
-                {/* Center BTC */}
-                <div
-                  className="absolute inset-0 flex items-center justify-center text-6xl"
-                  style={{ animation: 'spinReverse 6s linear infinite' }}
-                >
-                  ₿
-                </div>
-              </div>
-            </div>
+  {/* Background Glow */}
+  <div className="absolute w-[420px] h-[420px] bg-blue-600/20 blur-3xl rounded-full animate-pulse" />
 
-            {/* Top right XRP */}
-            <div
-              className="absolute w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-xl bg-gradient-to-br from-blue-400 to-sky-600"
-              style={{ top: '-2rem', right: '-2rem' }}
-            >
-              XRP
-            </div>
-          </div>
+  <div className="relative w-80 h-80 flex items-center justify-center">
+
+    {/* Rotating Gradient Ring */}
+    <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-blue-500 via-sky-400 to-indigo-500 p-[2px] animate-[spin_18s_linear_infinite]">
+      <div className="w-full h-full bg-slate-950 rounded-full backdrop-blur-xl border border-slate-800" />
+    </div>
+
+    {/* Orbit Container */}
+    <div className="absolute inset-0 animate-[spin_30s_linear_infinite]">
+
+      {dots.map((dot, index) => (
+        <div
+          key={dot.id}
+          className="absolute top-1/2 left-1/2 origin-center"
+          style={{
+            transform: `rotate(${index * (360 / dots.length)}deg) translate(150px)`
+          }}
+        >
+          <div
+            className="rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 shadow-lg shadow-blue-500/40 animate-float"
+            style={{
+              width: `${dot.size * 0.8}rem`,
+              height: `${dot.size * 0.8}rem`,
+              animationDuration: `${dot.speed}s`
+            }}
+          />
         </div>
+      ))}
+    </div>
+
+    {/* Center Coin */}
+    <div className="relative z-10 flex items-center justify-center w-32 h-32 rounded-full bg-gradient-to-br from-yellow-400 via-amber-500 to-orange-500 shadow-2xl shadow-yellow-500/40 animate-[spin_10s_linear_infinite]">
+      <span className="text-5xl font-extrabold text-white drop-shadow-lg">
+        ₿
+      </span>
+    </div>
+
+    
+
+    {/* Floating XRP Badge */}
+    <div className="absolute -top-10 -right-10 w-20 h-20 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-2xl bg-gradient-to-br from-blue-400 to-sky-600 animate-bounce-slow">
+      XRP
+    </div>
+
+  </div>
+         </div>
       </div>
 
       {/* Keyframes */}
