@@ -29,6 +29,35 @@ interface BinanceTicker {
 }
 
 export default function HomePage() {
+
+   
+
+  // ✅ Auto Slide Every 5 Seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCarouselIndex((prev) => (prev + 1) % carouselSlides.length)
+    }, 5000)
+
+    return () => clearInterval(interval)
+  }, [])
+
+  const goToSlide = (index: number) => {
+    setCarouselIndex(index)
+  }
+
+  const prevSlide = () => {
+    setCarouselIndex(
+      (prev) => (prev - 1 + carouselSlides.length) % carouselSlides.length
+    )
+  }
+
+  const nextSlide = () => {
+    setCarouselIndex(
+      (prev) => (prev + 1) % carouselSlides.length
+    )
+  }
+
+
   const pathname = usePathname()
   const linkClass = (path: string) =>
     `transition ${
@@ -49,10 +78,25 @@ export default function HomePage() {
   const [tickers, setTickers] = useState<BinanceTicker[]>([])
 
   const carouselSlides = [
-    { title: 'Secure & Fast Transactions', description: 'Deposit and withdraw funds instantly with bank-level security' },
-    { title: '24/7 Market Access', description: 'Trade cryptocurrencies anytime with real-time market data' },
-    { title: 'Advanced Trading Tools', description: 'Professional charts and analytics for informed decisions' },
-  ]
+  {
+    title: "Secure & Fast Transactions",
+    description:
+      "Deposit and withdraw funds instantly with bank-level security",
+    image: "/sliderone.jpg",
+  },
+  {
+    title: "24/7 Market Access",
+    description:
+      "Trade cryptocurrencies anytime with real-time market data",
+    image: "/slidertwo.jpg",
+  },
+  {
+    title: "Advanced Trading Tools",
+    description:
+      "Professional charts and analytics for informed decisions",
+    image: "/sliderthree.jpg",
+  },
+]
 
   const notifications: { id: number; message: string }[] = [] // empty notifications
 
@@ -124,38 +168,74 @@ export default function HomePage() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Carousel */}
-        <div className="relative mb-12">
-          <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-lg border border-slate-700/50 p-8 min-h-[280px] flex flex-col justify-center items-center relative overflow-hidden">
-            <button
-              onClick={() => setCarouselIndex((prev) => (prev - 1 + carouselSlides.length) % carouselSlides.length)}
-              className="absolute left-4 top-1/2 -translate-y-1/2 p-2 hover:bg-slate-700/50 rounded-lg transition"
-            >
-              <ChevronLeft className="w-6 h-6 text-white" />
-            </button>
+        <div className="relative mb-12 overflow-hidden rounded-2xl border border-slate-800 bg-gradient-to-r from-[#0b1220] to-[#0f1a2e]">
 
-            <div className="text-center">
-              <h2 className="text-3xl font-bold text-blue-400 mb-2">{carouselSlides[carouselIndex].title}</h2>
-              <p className="text-slate-400">{carouselSlides[carouselIndex].description}</p>
+      {/* SLIDER TRACK */}
+      <div
+        className="flex transition-transform duration-700 ease-in-out"
+        style={{
+          transform: `translateX(-${carouselIndex * 100}%)`,
+        }}
+      >
+        {carouselSlides.map((slide, index) => (
+          <div
+            key={index}
+            className="min-w-full grid md:grid-cols-2 items-center"
+          >
+            {/* LEFT IMAGE */}
+            <div className="relative h-[320px]">
+              <img
+                src={slide.image}
+                alt="slide"
+                className="w-full h-full object-cover md:rounded-l-2xl"
+              />
             </div>
 
-            <button
-              onClick={() => setCarouselIndex((prev) => (prev + 1) % carouselSlides.length)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 p-2 hover:bg-slate-700/50 rounded-lg transition"
-            >
-              <ChevronRight className="w-6 h-6 text-white" />
-            </button>
-
-            <div className="absolute bottom-4 flex gap-2">
-              {carouselSlides.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => setCarouselIndex(index)}
-                  className={`w-2 h-2 rounded-full transition ${index === carouselIndex ? 'bg-blue-500' : 'bg-slate-600'}`}
-                />
-              ))}
+            {/* RIGHT CONTENT */}
+            <div className="p-10 text-left">
+              <h2 className="text-3xl font-bold text-white mb-4">
+                {slide.title}
+              </h2>
+              <p className="text-slate-400 mb-6">
+                {slide.description}
+              </p>
+             
             </div>
           </div>
-        </div>
+        ))}
+      </div>
+
+      {/* LEFT ARROW */}
+      <button
+        onClick={prevSlide}
+        className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/40 backdrop-blur-md p-2 rounded-full hover:bg-black/60 transition"
+      >
+        <ChevronLeft className="w-5 h-5 text-white" />
+      </button>
+
+      {/* RIGHT ARROW */}
+      <button
+        onClick={nextSlide}
+        className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/40 backdrop-blur-md p-2 rounded-full hover:bg-black/60 transition"
+      >
+        <ChevronRight className="w-5 h-5 text-white" />
+      </button>
+
+      {/* DOTS */}
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+        {carouselSlides.map((_, index) => (
+          <button
+            key={index}
+            onClick={() => goToSlide(index)}
+            className={`w-2.5 h-2.5 rounded-full transition ${
+              index === carouselIndex
+                ? 'bg-blue-500 scale-110'
+                : 'bg-slate-600'
+            }`}
+          />
+        ))}
+      </div>
+    </div>
 
         {/* Balance Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
@@ -215,48 +295,59 @@ export default function HomePage() {
         </div>
 
         {/* Market Overview */}
-        <div>
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold text-white mb-2">Market Overview</h2>
-            <p className="text-slate-400">Real-time cryptocurrency prices and trends</p>
-          </div>
+        <div className="w-full max-w-[1600px] mx-auto px-4">
+  <div className="mb-6">
+    <h2 className="text-2xl font-bold text-white mb-2">Market Overview</h2>
+    <p className="text-slate-400">Real-time cryptocurrency prices and trends</p>
+  </div>
 
-          <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg border border-slate-700/50 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-slate-700/50">
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-400">#</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-400">NAME</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-400">PRICE</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-400">24H CHANGE</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-400">ACTION</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tickers.map((coin, index) => (
-                    <tr key={coin.symbol} className="border-b border-slate-700/30 hover:bg-slate-800/50 transition">
-                      <td className="px-6 py-4 text-slate-400 text-sm">{index + 1}</td>
-                      <td className="px-6 py-4 text-white font-medium text-sm">{coin.symbol}</td>
-                      <td className="px-6 py-4 text-white font-medium text-sm">${parseFloat(coin.lastPrice).toFixed(2)}</td>
-                      <td className={`px-6 py-4 text-sm font-medium ${parseFloat(coin.priceChangePercent) >= 0 ? 'text-cyan-400' : 'text-red-400'}`}>
-                        {parseFloat(coin.priceChangePercent).toFixed(2)}%
-                      </td>
-                      <td className="px-6 py-4">
-                        <button
-                          onClick={() => router.push(`/trade?pair=${coin.symbol}`)}
-                          className="px-3 py-1 bg-blue-500 hover:bg-blue-600 rounded text-sm transition"
-                        >
-                          Trade
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
+  <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg border border-slate-700/50 overflow-hidden">
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[800px]">
+        <thead>
+          <tr className="border-b border-slate-700/50">
+            <th className="px-6 py-4 text-left text-xs font-semibold text-slate-400">#</th>
+            <th className="px-6 py-4 text-left text-xs font-semibold text-slate-400">NAME</th>
+            <th className="px-6 py-4 text-left text-xs font-semibold text-slate-400">PRICE</th>
+            <th className="px-6 py-4 text-left text-xs font-semibold text-slate-400">24H CHANGE</th>
+            <th className="px-6 py-4 text-left text-xs font-semibold text-slate-400">ACTION</th>
+          </tr>
+        </thead>
+        <tbody>
+          {tickers.map((coin, index) => (
+            <tr
+              key={coin.symbol}
+              className="border-b border-slate-700/30 hover:bg-slate-800/50 transition"
+            >
+              <td className="px-6 py-4 text-slate-400 text-sm">{index + 1}</td>
+              <td className="px-6 py-4 text-white font-medium text-sm">{coin.symbol}</td>
+              <td className="px-6 py-4 text-white font-medium text-sm">
+                ${parseFloat(coin.lastPrice).toFixed(2)}
+              </td>
+              <td
+                className={`px-6 py-4 text-sm font-medium ${
+                  parseFloat(coin.priceChangePercent) >= 0
+                    ? 'text-cyan-400'
+                    : 'text-red-400'
+                }`}
+              >
+                {parseFloat(coin.priceChangePercent).toFixed(2)}%
+              </td>
+              <td className="px-6 py-4">
+                <button
+                  onClick={() => router.push(`/trade?pair=${coin.symbol}`)}
+                  className="px-3 py-1 bg-blue-500 hover:bg-blue-600 rounded text-sm transition"
+                >
+                  Trade
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
       </main>
     </div>
   )
