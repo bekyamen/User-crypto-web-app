@@ -400,7 +400,7 @@ const fetchTotalWithdraw = async () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 p-6 text-white">
+   <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-2">
       {/* Tabs */}
       <div className="flex flex-wrap gap-4 mb-8 border-b border-slate-700 pb-4">
         {tabs.map((tab) => (
