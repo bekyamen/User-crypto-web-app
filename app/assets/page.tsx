@@ -83,210 +83,152 @@ export default function AssetsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
-      {/* Header */}
-     
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Page Title */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Assets</h1>
-          <p className="text-slate-400">Manage your wallet, deposits, and withdrawals</p>
-        </div>
+  <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#1e293b,_#020617_70%)] text-white">
+    <main className="max-w-7xl mx-auto px-6 py-10">
 
-        {/* User Profile Card */}
-        <div className="mb-8">
-          <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg border border-slate-700/50 p-6 flex items-center gap-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center flex-shrink-0">
-              <span className="text-white font-bold text-2xl">{avatarLetter}</span>
+      {/* Title */}
+      <div className="mb-10">
+        <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+          Assets Overview
+        </h1>
+        <p className="text-slate-400 mt-2">
+          Manage your portfolio, deposits, withdrawals and earnings
+        </p>
+      </div>
+
+      {/* Profile + Balance */}
+      <div className="grid lg:grid-cols-2 gap-8 mb-10">
+
+        {/* User Card */}
+        <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl hover:border-blue-500/40 transition">
+          <div className="flex items-center gap-5">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-2xl font-bold shadow-lg">
+              {avatarLetter}
             </div>
-            <div className="flex-1">
-              <h2 className="text-white font-bold text-lg">{firstName}</h2>
+
+            <div>
+              <h2 className="text-xl font-semibold">{firstName}</h2>
               <p className="text-slate-400 text-sm">{email}</p>
             </div>
-           <Link
-  href="/settings"
-  className="p-2 hover:bg-slate-700/50 rounded-lg transition inline-flex"
->
-  <Settings className="w-5 h-5 text-slate-400" />
-</Link>
-          </div>
-        </div>
 
-        {/* Portfolio Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          {/* Portfolio Card */}
-          <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg border border-slate-700/50 p-8">
-            <div className="flex items-start justify-between mb-8">
-              <div>
-                <p className="text-slate-400 text-sm mb-2">PORTFOLIO</p>
-                <p className="text-slate-400 text-xs mb-4">Total Assets</p>
-                <div className="flex items-baseline gap-2 mb-4">
-                  <h3 className="text-5xl font-bold text-white">
-  {showBalance
-    ? balance.toLocaleString(undefined, {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      })
-    : '••••'}
-</h3>
-
-                  <span className="text-slate-400">USD</span>
-                </div>
-               
-              </div>
-              <button
-                onClick={() => setShowBalance(!showBalance)}
-                className="p-2 hover:bg-slate-700/50 rounded-lg transition"
+            <div className="ml-auto">
+              <Link
+                href="/settings"
+                className="p-2 rounded-lg hover:bg-white/10 transition"
               >
-                {showBalance ? <EyeOff className="w-5 h-5 text-slate-400" /> : <Eye className="w-5 h-5 text-slate-400" />}
-              </button>
-            </div>
-
-            {/* P&L */}
-            <div className="mb-6 pb-6 border-b border-slate-700/50">
-             
-             
-            </div>
-
-            {/* Available Balances */}
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div>
-               
-                
-
-                
-              </div>
-              <div>
-                
-                
-
-                
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="grid grid-cols-4 gap-3">
-              <Link href="/assets/deposit" className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-slate-800/50 transition group">
-                <div className="w-10 h-10 rounded-full border-2 border-slate-600 flex items-center justify-center group-hover:border-blue-400 transition">
-                  <ArrowDown className="w-4 h-4 text-slate-400 group-hover:text-blue-400" />
-                </div>
-                <span className="text-slate-400 text-xs text-center">Deposit</span>
+                <Settings className="w-5 h-5 text-slate-400 hover:text-white transition" />
               </Link>
-
-              <Link href="/assets/withdraw" className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-slate-800/50 transition group">
-                <div className="w-10 h-10 rounded-full border-2 border-slate-600 flex items-center justify-center group-hover:border-blue-400 transition">
-                  <ArrowUp className="w-4 h-4 text-slate-400 group-hover:text-blue-400" />
-                </div>
-                <span className="text-slate-400 text-xs text-center">Withdraw</span>
-              </Link>
-
-              <Link href="/assets/transfer" className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-slate-800/50 transition group">
-                <div className="w-10 h-10 rounded-full border-2 border-slate-600 flex items-center justify-center group-hover:border-blue-400 transition">
-                  <Zap className="w-4 h-4 text-slate-400 group-hover:text-blue-400" />
-                </div>
-                <span className="text-slate-400 text-xs text-center">Transfer</span>
-              </Link>
-
-              <Link href="/assets/convert" className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-slate-800/50 transition group">
-                <div className="w-10 h-10 rounded-full border-2 border-slate-600 flex items-center justify-center group-hover:border-blue-400 transition">
-                  <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-slate-400 group-hover:text-blue-400"><path d="M3.5 2v6h6"></path><path d="M20.5 22v-6h-6"></path><path d="M20.236 3.456a9 9 0 0 0-12.864 0c-3.606 3.606-3.584 9.432 0 13.036 3.584 3.605 9.252 3.624 12.864 0"></path></svg>
-                </div>
-                <span className="text-slate-400 text-xs text-center">Convert</span>
-              </Link>
-            </div>
-          </div>
-
-          {/* Settings Panel */}
-          <div className="space-y-4">
-            {/* Account Settings Card */}
-            <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg border border-slate-700/50 p-6 hover:border-slate-600 transition cursor-pointer group">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-white font-semibold group-hover:text-blue-400 transition">Account Settings</h3>
-                  <p className="text-slate-400 text-sm mt-1">Manage your account preferences</p>
-                </div>
-                <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-blue-400 transition" />
-              </div>
-            </div>
-
-            {/* Security */}
-            <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg border border-slate-700/50 p-6 hover:border-slate-600 transition cursor-pointer group">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-white font-semibold group-hover:text-blue-400 transition">Security</h3>
-                  <p className="text-slate-400 text-sm mt-1">Enable two-factor authentication</p>
-                </div>
-                <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-blue-400 transition" />
-              </div>
-            </div>
-
-            {/* Verification */}
-            <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg border border-slate-700/50 p-6 hover:border-slate-600 transition cursor-pointer group">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-white font-semibold group-hover:text-blue-400 transition">Verification</h3>
-                  <p className="text-slate-400 text-sm mt-1">Complete KYC verification</p>
-                </div>
-                <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-blue-400 transition" />
-              </div>
             </div>
           </div>
         </div>
 
-        {/* Account Sections */}
-        <div className="space-y-6">
-          {/* Funding Account */}
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-white font-bold text-lg">Funding</h3>
-              <button className="text-blue-400 hover:text-blue-300 transition">
-                <ChevronRight className="w-5 h-5" />
-              </button>
+        {/* Portfolio Card */}
+        <div className="relative bg-gradient-to-br from-blue-600/20 to-purple-600/20 backdrop-blur-xl border border-blue-500/20 rounded-2xl p-8 shadow-[0_0_40px_rgba(59,130,246,0.2)]">
+
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-sm text-slate-300 uppercase tracking-wider">
+                Total Portfolio Value
+              </p>
+
+              <div className="flex items-end gap-3 mt-4">
+                <h3 className="text-5xl font-extrabold tracking-tight">
+                  {showBalance
+                    ? balance.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })
+                    : "••••"}
+                </h3>
+                <span className="text-lg text-slate-300">USD</span>
+              </div>
             </div>
-            <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg border border-slate-700/50 p-6">
-              <p className="text-white font-semibold mb-2">0.00 USD</p>
-              <p className="text-slate-400 text-sm">Deposit and withdraw from external sources</p>
-            </div>
+
+            <button
+              onClick={() => setShowBalance(!showBalance)}
+              className="p-3 rounded-xl bg-white/10 hover:bg-white/20 transition"
+            >
+              {showBalance ? (
+                <EyeOff className="w-5 h-5" />
+              ) : (
+                <Eye className="w-5 h-5" />
+              )}
+            </button>
           </div>
 
-          {/* Unified Trading */}
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-white font-bold text-lg">Unified Trading</h3>
-              <button className="text-blue-400 hover:text-blue-300 transition">
-                <ChevronRight className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg border border-slate-700/50 p-6">
-              <p className="text-white font-semibold mb-2">0.00 USD</p>
-              <p className="text-slate-400 text-sm">Trade cryptocurrencies with unified account</p>
-            </div>
-          </div>
+          {/* Action Buttons */}
+          <div className="grid grid-cols-4 gap-4 mt-8">
+            {[
+              { href: "/assets/deposit", icon: ArrowDown, label: "Deposit" },
+              { href: "/assets/withdraw", icon: ArrowUp, label: "Withdraw" },
+              { href: "/assets/transfer", icon: Zap, label: "Transfer" },
+            ].map((item, i) => (
+              <Link
+                key={i}
+                href={item.href}
+                className="flex flex-col items-center gap-2 p-4 rounded-xl bg-white/5 hover:bg-white/10 hover:scale-105 transition-all duration-200"
+              >
+                <item.icon className="w-5 h-5 text-blue-400" />
+                <span className="text-xs text-slate-300">{item.label}</span>
+              </Link>
+            ))}
 
-          {/* Invested Products */}
-          <div>
-            <h3 className="text-white font-bold text-lg mb-4">Invested Products</h3>
-            <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg border border-slate-700/50 p-6 flex items-center justify-between">
-              <div className="w-2 h-16 bg-gradient-to-b from-blue-500 to-slate-600 rounded-full"></div>
-              <p className="text-slate-400 text-sm flex-1 ml-4">No invested products at the moment</p>
-            </div>
-          </div>
-
-          {/* Earn */}
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-white font-bold text-lg">Earn</h3>
-              <button className="text-blue-400 hover:text-blue-300 transition">
-                <ChevronRight className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg border border-slate-700/50 p-6">
-              <p className="text-white font-semibold mb-2">0.00 USD</p>
-              <p className="text-slate-400 text-sm">Earn passive income from your holdings</p>
-            </div>
+            <Link
+              href="/assets/convert"
+              className="flex flex-col items-center gap-2 p-4 rounded-xl bg-white/5 hover:bg-white/10 hover:scale-105 transition-all duration-200"
+            >
+              <svg
+                width={20}
+                height={20}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                className="text-purple-400"
+              >
+                <path d="M3.5 2v6h6"></path>
+                <path d="M20.5 22v-6h-6"></path>
+                <path d="M20.236 3.456a9 9 0 0 0-12.864 0c-3.606 3.606-3.584 9.432 0 13.036 3.584 3.605 9.252 3.624 12.864 0"></path>
+              </svg>
+              <span className="text-xs text-slate-300">Convert</span>
+            </Link>
           </div>
         </div>
-      </main>
-    </div>
-  )
+      </div>
+
+      {/* Account Sections */}
+      <div className="grid md:grid-cols-2 gap-6">
+
+        {[
+          { title: "Funding Account", desc: "Deposit & Withdraw", value: "0.00 USD" },
+          { title: "Unified Trading", desc: "Trade with unified wallet", value: "0.00 USD" },
+          { title: "Earn", desc: "Passive income products", value: "0.00 USD" },
+        ].map((card, i) => (
+          <div
+            key={i}
+            className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 hover:border-blue-500/40 hover:shadow-lg transition-all"
+          >
+            <h3 className="font-semibold text-lg">{card.title}</h3>
+            <p className="text-slate-400 text-sm mt-1">{card.desc}</p>
+            <p className="text-2xl font-bold mt-4 text-blue-400">
+              {card.value}
+            </p>
+          </div>
+        ))}
+
+        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold text-lg">Invested Products</h3>
+            <p className="text-slate-400 text-sm mt-1">
+              No active investments
+            </p>
+          </div>
+          <div className="w-3 h-16 rounded-full bg-gradient-to-b from-blue-500 to-purple-600"></div>
+        </div>
+
+      </div>
+
+    </main>
+  </div>
+)
 }
