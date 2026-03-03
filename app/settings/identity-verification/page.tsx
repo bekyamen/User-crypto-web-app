@@ -19,6 +19,21 @@ type Verification = {
   updatedAt: string
 }
 
+type Level2Verification = {
+  id: string
+  userId: string
+  selfieUrl: string
+  proofOfAddressUrl: string
+  dateOfBirth: string
+  country: string
+  status: 'PENDING' | 'APPROVED' | 'REJECTED'
+  reviewNote: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
 
 export default function IdentityVerificationPage() {
@@ -33,6 +48,15 @@ export default function IdentityVerificationPage() {
   const [backPreview, setBackPreview] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [fetching, setFetching] = useState(true)
+
+
+  const [level2, setLevel2] = useState<Level2Verification | null>(null)
+const [level2Loading, setLevel2Loading] = useState(false)
+const [selfieFile, setSelfieFile] = useState<File | null>(null)
+const [addressFile, setAddressFile] = useState<File | null>(null)
+const [selfiePreview, setSelfiePreview] = useState<string | null>(null)
+const [dateOfBirth, setDateOfBirth] = useState('')
+const [country, setCountry] = useState('')
 
   const documentTypes = [
     { id: 'identity-card', name: 'Identity Card' },
@@ -70,6 +94,19 @@ export default function IdentityVerificationPage() {
       }
 
       setVerification(data.verification)
+      // Fetch Level 2
+try {
+  const res2 = await fetch(`${API_BASE_URL}/identity-verification/level2/me`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+
+  if (res2.ok) {
+    const data2 = await res2.json()
+    setLevel2(data2.verification)
+  }
+} catch (err) {
+  console.error('Level 2 fetch error:', err)
+}
     } catch (err: any) {
       console.error('Fetch verification error:', err.message)
       setVerification(null)
@@ -81,6 +118,12 @@ export default function IdentityVerificationPage() {
   useEffect(() => {
     if (!authLoading) fetchVerification()
   }, [token, authLoading])
+
+
+
+  
+
+
 
   // =============================
   // Handle file selection
@@ -156,6 +199,45 @@ export default function IdentityVerificationPage() {
       setLoading(false)
     }
   }
+
+
+  const handleLevel2Submit = async () => {
+  if (!selfieFile || !addressFile || !dateOfBirth || !country || !token) {
+    alert('Please complete all Level 2 fields')
+    return
+  }
+
+  setLevel2Loading(true)
+
+  try {
+    const formData = new FormData()
+    formData.append('selfie', selfieFile)
+    formData.append('proofOfAddress', addressFile)
+    formData.append('dateOfBirth', dateOfBirth)
+    formData.append('country', country)
+
+    const res = await fetch(`${API_BASE_URL}/identity-verification/level2/submit`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    })
+
+    const data = await res.json()
+
+    if (!res.ok) {
+      alert(data.message || 'Level 2 submission failed')
+      return
+    }
+
+    setLevel2(data.verification)
+    alert('Level 2 submitted successfully!')
+  } catch (err: any) {
+    alert(err.message || 'Submission failed')
+  } finally {
+    setLevel2Loading(false)
+  }
+}
+
 
   if (authLoading || fetching) return <p className="text-white text-center mt-10">Loading...</p>
 
@@ -255,6 +337,103 @@ export default function IdentityVerificationPage() {
           </button>
         </>
       )}
+
+      {/* ================= LEVEL 2 ================= */}
+{verification?.status === 'APPROVED' && (
+  <div className="mt-14">
+    <div className="flex items-center gap-3 mb-6">
+      <Shield className="w-6 h-6 text-purple-400" />
+      <h2 className="text-xl font-semibold">
+        Level 2 – Advanced Verification
+      </h2>
+    </div>
+
+    {level2 ? (
+  <div className="border border-green-500 bg-green-900/20 text-green-200 rounded-lg p-8 text-center space-y-4">
+    <div className="flex justify-center">
+      <div className="bg-green-500/20 p-4 rounded-full">
+        <Shield className="w-10 h-10 text-green-400" />
+      </div>
+    </div>
+
+    <h3 className="text-2xl font-bold text-green-400">
+      Level 2 Verification Submitted Successfully
+    </h3>
+
+    <p className="text-slate-300">
+      Your advanced verification has been received successfully.
+      Our team will review your documents if required.
+    </p>
+
+    <div className="text-sm text-slate-400">
+      Submitted on {new Date(level2.createdAt).toLocaleDateString()}
+    </div>
+  </div>
+) : (
+      <div className="space-y-6 bg-slate-800 p-6 rounded-lg border border-slate-700">
+
+        <div className="grid md:grid-cols-2 gap-4">
+          <input
+            type="date"
+            value={dateOfBirth}
+            onChange={(e) => setDateOfBirth(e.target.value)}
+            className="bg-slate-900 border border-slate-700 rounded-lg px-4 py-2"
+          />
+          <input
+            type="text"
+            placeholder="Country"
+            value={country}
+            onChange={(e) => setCountry(e.target.value)}
+            className="bg-slate-900 border border-slate-700 rounded-lg px-4 py-2"
+          />
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-4">
+          <label className="border-2 border-dashed border-slate-700 rounded-lg p-4 cursor-pointer text-center">
+            Upload Selfie
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (!file) return
+                setSelfieFile(file)
+                setSelfiePreview(URL.createObjectURL(file))
+              }}
+            />
+            {selfiePreview && (
+              <img src={selfiePreview} className="mt-2 h-24 mx-auto rounded-md" />
+            )}
+          </label>
+
+          <label className="border-2 border-dashed border-slate-700 rounded-lg p-4 cursor-pointer text-center">
+            Upload Proof of Address
+            <input
+              type="file"
+              accept="image/*,application/pdf"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (!file) return
+                setAddressFile(file)
+              }}
+            />
+          </label>
+        </div>
+
+        <button
+          onClick={handleLevel2Submit}
+          disabled={level2Loading}
+          className="w-full bg-purple-600 py-3 rounded-lg font-semibold disabled:opacity-50"
+        >
+          {level2Loading ? 'Submitting...' : 'Submit Level 2'}
+        </button>
+      </div>
+    )}
+  </div>
+)}
+
     </div>
   )
 }

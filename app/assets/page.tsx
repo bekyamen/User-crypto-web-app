@@ -103,9 +103,12 @@ export default function AssetsPage() {
               <h2 className="text-white font-bold text-lg">{firstName}</h2>
               <p className="text-slate-400 text-sm">{email}</p>
             </div>
-            <button className="p-2 hover:bg-slate-700/50 rounded-lg transition">
-              <Settings className="w-5 h-5 text-slate-400" />
-            </button>
+           <Link
+  href="/settings"
+  className="p-2 hover:bg-slate-700/50 rounded-lg transition inline-flex"
+>
+  <Settings className="w-5 h-5 text-slate-400" />
+</Link>
           </div>
         </div>
 

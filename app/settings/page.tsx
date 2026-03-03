@@ -8,6 +8,7 @@ import SpotHistoryPage from './spot-history/page'
 import SecurityPage from './security/page'
 
 
+
 type VerificationStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | null
 
 const API_BASE_URL =
@@ -23,56 +24,100 @@ export default function SettingsPage() {
     { id: 'security', label: 'Security', icon: '🛡️' },
   ]
 
+  const [totalWithdraw, setTotalWithdraw] = useState(0)
+  const [totalDeposits, setTotalDeposits] = useState(0)
   const [activeTab, setActiveTab] = useState<string>('dashboard')
   const [balance, setBalance] = useState(0) // make balance stateful
   const [verificationStatus, setVerificationStatus] = useState<VerificationStatus>(null)
+  const [level2Completed, setLevel2Completed] = useState(false)
   const [securityScore, setSecurityScore] = useState(25)
   const [copiedCode, setCopiedCode] = useState(false)
   const [fetching, setFetching] = useState(true)
-
+ 
   const statCards = [
-    { label: 'Total Deposits', value: '$0', icon: '⬇️' },
-    { label: 'Total Withdrawals', value: '$0', icon: '⬆️' },
-    { label: 'Trading Volume', value: '$0', icon: '📊' },
-    { label: 'ROI', value: '+0%', icon: '$' },
-  ]
+  {
+  label: 'Total Deposits',
+  value: `$${totalDeposits.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`,
+  icon: '⬇️',
+},
+ 
+{
+  label: 'Total Withdrawals',
+  value: `$${totalWithdraw.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`,
+  icon: '⬆️',
+},
 
-  const fetchVerification = async () => {
-    if (!token) {
-      setFetching(false)
-      return
-    }
+ 
+]
 
-    try {
-      const res = await fetch(`${API_BASE_URL}/identity-verification/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-
-      const data = await res.json().catch(() => null)
-      if (!res.ok) {
-        setVerificationStatus(null)
-        return
-      }
-
-      setVerificationStatus(data.verification?.status || null)
-    } catch (err) {
-      console.error('Fetch verification error:', err)
-      setVerificationStatus(null)
-    } finally {
-      setFetching(false)
-    }
+ const fetchVerification = async () => {
+  if (!token) {
+    setFetching(false)
+    return
   }
+
+  try {
+    // =========================
+    // LEVEL 1
+    // =========================
+    const res = await fetch(`${API_BASE_URL}/identity-verification/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+    })
+
+    const data = await res.json().catch(() => null)
+
+    if (res.ok) {
+      setVerificationStatus(data.verification?.status || null)
+    } else {
+      setVerificationStatus(null)
+    }
+
+    // =========================
+    // LEVEL 2 (NO STATUS, JUST EXISTS)
+    // =========================
+    const res2 = await fetch(`${API_BASE_URL}/identity-verification/level2/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+    })
+
+    if (res2.ok) {
+      const data2 = await res2.json()
+      setLevel2Completed(!!data2.verification)
+    } else {
+      setLevel2Completed(false)
+    }
+
+  } catch (err) {
+    console.error('Fetch verification error:', err)
+    setVerificationStatus(null)
+    setLevel2Completed(false)
+  } finally {
+    setFetching(false)
+  }
+}
 
   useEffect(() => {
     fetchVerification()
   }, [token])
 
-  useEffect(() => {
-  const fetchBalance = async () => {
-    if (!token) return
+  
 
+
+
+
+  useEffect(() => {
+  if (!token) return
+
+  const fetchBalance = async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/user/me`, {
+      const res = await fetch(`${API_BASE_URL}/user/me`, {
         headers: { Authorization: `Bearer ${token}` },
       })
 
@@ -87,14 +132,73 @@ export default function SettingsPage() {
   }
 
   fetchBalance()
+fetchTotalDeposits()
+fetchTotalWithdraw()
 }, [token])
 
+
+
+const fetchTotalDeposits = async () => {
+  if (!token) return
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/user/deposit/total`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+    })
+
+    const data = await res.json()
+
+    if (res.ok && data.success) {
+      setTotalDeposits(Number(data.data?.totalDeposits || 0))
+    } else {
+      setTotalDeposits(0)
+    }
+  } catch (err) {
+    console.error('Failed to fetch total deposits:', err)
+    setTotalDeposits(0)
+  }
+}
+
+const fetchTotalWithdraw = async () => {
+  if (!token) return
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/withdraw/total`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+    })
+
+    const data = await res.json()
+
+    if (res.ok && data.success) {
+      setTotalWithdraw(Number(data.data?.totalWithdraw || 0))
+    } else {
+      setTotalWithdraw(0)
+    }
+  } catch (err) {
+    console.error('Failed to fetch total withdraw:', err)
+    setTotalWithdraw(0)
+  }
+}
+
   useEffect(() => {
-    if (!verificationStatus) setSecurityScore(25)
-    else if (verificationStatus === 'APPROVED') setSecurityScore(80)
-    else if (verificationStatus === 'PENDING') setSecurityScore(50)
-    else if (verificationStatus === 'REJECTED') setSecurityScore(30)
-  }, [verificationStatus])
+  if (verificationStatus === 'APPROVED' && level2Completed) {
+    setSecurityScore(100)
+  } 
+  else if (verificationStatus === 'APPROVED') {
+    setSecurityScore(80)
+  } 
+  else if (verificationStatus === 'PENDING') {
+    setSecurityScore(50)
+  } 
+  else if (verificationStatus === 'REJECTED') {
+    setSecurityScore(30)
+  } 
+  else {
+    setSecurityScore(25)
+  }
+}, [verificationStatus, level2Completed])
 
   const handleCopyCode = () => {
     navigator.clipboard.writeText('F1A7F06N')
@@ -109,7 +213,7 @@ export default function SettingsPage() {
         return (
           <>
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div className="">
               {statCards.map((stat, idx) => (
                 <div
                   key={idx}
@@ -209,12 +313,22 @@ export default function SettingsPage() {
 
                         {/* 2FA */}
                         <div className="flex justify-between items-center">
-                          <div className="flex gap-2 items-center">
-                            <AlertCircle size={18} className="text-slate-400" />
-                            <span>2FA Enabled</span>
-                          </div>
-                          <span className="text-slate-400">Disabled</span>
-                        </div>
+  <div className="flex gap-2 items-center">
+    {level2Completed ? (
+      <CheckCircle size={18} className="text-green-400" />
+    ) : (
+      <AlertCircle size={18} className="text-slate-400" />
+    )}
+    <span>Final Verification</span>
+  </div>
+  <span
+    className={`font-semibold ${
+      level2Completed ? 'text-green-400' : 'text-slate-400'
+    }`}
+  >
+    {level2Completed ? 'COMPLETED' : 'NOT COMPLETED'}
+  </span>
+</div>
 
                         <div className="pt-4 border-t border-slate-700/50 text-xs text-slate-400">
                           <p className="flex items-center gap-2">
@@ -309,4 +423,4 @@ export default function SettingsPage() {
       {renderTabContent()}
     </div>
   )
-}
+} 
