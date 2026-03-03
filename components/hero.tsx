@@ -6,7 +6,7 @@ import Link from 'next/link'
 
 export function Hero() {
   return (
-    <section className="relative min-h-screen overflow-hidden bg-background">
+    <section className="max-w-7xl mx-auto">
       {/* Background gradients */}
       <div className="absolute inset-0">
         <div className="absolute inset-0" style={{
