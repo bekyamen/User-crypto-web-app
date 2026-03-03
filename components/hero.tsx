@@ -21,29 +21,34 @@ export function Hero() {
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
           {/* Left Content */}
           <div className="space-y-8 animate-fade-in">
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 badge-border rounded-full px-4 py-2">
-              <span className="text-glow-blue text-lg">🔥</span>
-              <span className="text-glow-blue text-sm font-medium">
-                Trusted by 2M+ Traders Worldwide
-              </span>
-            </div>
+             <div className="flex flex-col items-start space-y-6">
+  
+  <div className="inline-flex items-center gap-2 badge-border rounded-full px-4 py-2">
+    <span className="text-glow-blue text-lg">🔥</span>
+    <span className="text-glow-blue text-sm font-medium">
+      Trusted by 2M+ Traders Worldwide
+    </span>
+  </div>
+
+  <h1 className="font-display text-6xl md:text-7xl lg:text-8xl font-extrabold leading-[1.05] tracking-tight drop-shadow-[0_0_25px_rgba(255,204,0,0.8)] text-left">
+    <span className="bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 animate-gradient-x">
+      Trade
+    </span>{' '}
+    <span className="bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 animate-gradient-x delay-150">
+      Smarter
+    </span>
+    <span className="text-foreground">,</span>
+    <br />
+    <span className="text-white italic font-extrabold drop-shadow-lg">
+      Not Harder
+    </span>
+  </h1>
+
+</div>     
 
             {/* Title */}
               {/* Hero Text */}
-      <h1 className="font-display text-6xl md:text-7xl lg:text-8xl font-extrabold leading-[1.05] tracking-tight text-center drop-shadow-[0_0_25px_rgba(255,204,0,0.8)]">
-        <span className="bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 animate-gradient-x">
-          Trade
-        </span>{' '}
-        <span className="bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 animate-gradient-x delay-150">
-          Smarter
-        </span>
-        <span className="text-foreground">,</span>
-        <br />
-        <span className="text-white italic font-extrabold drop-shadow-lg">
-          Not Harder
-        </span>
-      </h1>
+     
 
             {/* Orange underline */}
             <div className="w-40 h-1 rounded-full bg-primary" />
