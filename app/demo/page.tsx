@@ -100,7 +100,7 @@ export default function DemoPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
       {/* Trading Tabs */}
-       <div className="flex items-center gap-6 border-t border-slate-700/50 pt-0 px-4 md:px-6 lg:px-8">
+         <div className="flex items-center gap-6 border-t border-slate-700/50 pt-2 md:pt-4 lg:pt-6 px-4 md:px-6 lg:px-8">
   {['crypto', 'forex', 'gold'].map(tab => (
     <button
       key={tab}
