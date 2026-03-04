@@ -22,6 +22,8 @@ export interface RegisterData {
   fundsPassword: string
 }
 
+
+
 export function useAuth() {
   const router = useRouter()
   const { data: session, status } = useSession()

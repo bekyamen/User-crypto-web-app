@@ -8,15 +8,31 @@ export function Hero() {
   return (
     <section className="max-w-7xl mx-auto">
       {/* Background gradients */}
-      <div className="absolute inset-0">
-        <div className="absolute inset-0" style={{
-          background: 'radial-gradient(ellipse 80% 60% at 20% 50%, hsl(222 47% 14% / 0.8) 0%, transparent 70%)'
-        }} />
-        <div className="absolute inset-0" style={{
-          background: 'radial-gradient(ellipse 60% 50% at 80% 60%, hsl(28 100% 55% / 0.05) 0%, transparent 70%)'
-        }} />
-      </div>
+     
+     {/* Background gradients */}
+<div className="absolute inset-0 -z-10 overflow-hidden">
 
+  {/* Base dark radial (keep depth) */}
+  <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_20%_50%,rgba(30,41,59,0.6),transparent_70%)]" />
+
+  {/* Soft blue glow */}
+  <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] 
+    bg-blue-600/20 
+    rounded-full 
+    blur-[140px] 
+    opacity-40" />
+
+  {/* Soft purple glow */}
+  <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] 
+    bg-purple-600/20 
+    rounded-full 
+    blur-[160px] 
+    opacity-30" />
+
+  {/* Very subtle center blend */}
+  <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 to-purple-600/5" />
+
+</div>
       <div className="relative z-10 container mx-auto px-6 pt-24 pb-16 lg:pt-32">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
           {/* Left Content */}
@@ -30,19 +46,30 @@ export function Hero() {
     </span>
   </div>
 
-  <h1 className="font-display text-6xl md:text-7xl lg:text-8xl font-extrabold leading-[1.05] tracking-tight drop-shadow-[0_0_25px_rgba(255,204,0,0.8)] text-left">
-    <span className="bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 animate-gradient-x">
-      Trade
-    </span>{' '}
-    <span className="bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 animate-gradient-x delay-150">
-      Smarter
-    </span>
-    <span className="text-foreground">,</span>
-    <br />
-    <span className="text-white italic font-extrabold drop-shadow-lg">
-      Not Harder
-    </span>
-  </h1>
+ <h1 className="font-display
+  text-5xl md:text-6xl lg:text-7xl xl:text-8xl
+  font-extralight tracking-normal leading-[1.12] text-left">
+
+  <span className="bg-clip-text text-transparent 
+    bg-gradient-to-r from-yellow-300/80 via-orange-400/80 to-red-400/80
+    animate-gradient-x">
+    Trade
+  </span>{' '}
+
+  <span className="bg-clip-text text-transparent 
+    bg-gradient-to-r from-yellow-300/80 via-orange-400/80 to-red-400/80
+    animate-gradient-x delay-150">
+    Smarter
+  </span>
+
+  <span className="text-white/60">,</span>
+
+  <br />
+
+  <span className="text-white/70 italic font-light">
+    Not Harder
+  </span>
+</h1>
 
 </div>     
 
