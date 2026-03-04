@@ -84,7 +84,8 @@ export default function AssetsPage() {
 
   return (
   <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#1e293b,_#020617_70%)] text-white">
-    <main className="max-w-7xl mx-auto px-6 py-10">
+    
+    <main className="max-w-7xl mx-auto px-7 py-10">
 
       {/* Title */}
       <div className="mb-10">
@@ -140,7 +141,7 @@ export default function AssetsPage() {
                       })
                     : "••••"}
                 </h3>
-                <span className="text-lg text-slate-300">USD</span>
+                <span className="text-lg text-slate-300">USDT</span>
               </div>
             </div>
 

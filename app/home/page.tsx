@@ -251,7 +251,7 @@ export default function HomePage() {
                       : '••••'}
                        </h3>
 
-                    <span className="text-slate-400">USD</span>
+                    <span className="text-slate-400">USDT</span>
                   </div>
                   <p className="text-blue-400 text-sm mt-2">Welcome back, {session?.user?.email ?? 'User'}</p>
                 </div>

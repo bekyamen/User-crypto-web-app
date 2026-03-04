@@ -106,21 +106,7 @@ export function ReallTradingDashboard({ tab }: TradingDashboardProps) {
   return (
     <>
       {/* ================= TAB SWITCHER ================= */}
-      <div className="flex gap-3 mb-6">
-        {(['crypto', 'forex', 'gold'] as const).map(t => (
-          <button
-            key={t}
-            onClick={() => setActiveTab(t)}
-            className={`px-4 py-2 rounded-md font-semibold capitalize ${
-              activeTab === t
-                ? 'bg-blue-600 text-white'
-                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-            }`}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
+      
 
       {/* ================= CHART ================= */}
       <div className="mb-6">

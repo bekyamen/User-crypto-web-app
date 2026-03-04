@@ -100,6 +100,27 @@ export default function ReallPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
       
+        <div className="flex items-center gap-6 border-t border-slate-700/50 pt-0 px-4 md:px-6 lg:px-8">
+  {['crypto', 'forex', 'gold'].map(tab => (
+    <button
+      key={tab}
+      onClick={() => setActiveTab(tab as 'crypto' | 'forex' | 'gold')}
+      className={`px-4 py-3 text-sm font-medium transition relative ${
+        activeTab === tab ? 'text-white' : 'text-slate-400 hover:text-slate-200'
+      }`}
+    >
+      <span className="flex items-center gap-2">
+        {tab === 'crypto' && '₿'}
+        {tab === 'forex' && '💱'}
+        {tab === 'gold' && '🏆'}
+        <span className="hidden sm:inline">{tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
+      </span>
+      {activeTab === tab && (
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-orange-500 rounded-full" />
+      )}
+    </button>
+  ))}
+</div>
 
       <main className="w-full px-4 sm:px-6 lg:px-8 py-8">
         <ReallTradingDashboard

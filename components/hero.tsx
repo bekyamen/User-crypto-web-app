@@ -89,7 +89,7 @@ export function Hero() {
 
             {/* Buttons */}
             <div className="flex flex-wrap gap-4">
-              <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-8 gap-2 rounded-lg">
+              <Button size="lg" className="bg-gradient-to-r from-blue-500 to-orange-500 hover:from-blue-600 hover:to-orange-600 text-white font-semibold px-8 rounded-lg">
                 Get Started Free
                 <ArrowRight className="w-4 h-4" />
               </Button>
