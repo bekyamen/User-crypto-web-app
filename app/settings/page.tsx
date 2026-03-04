@@ -7,6 +7,12 @@ import IdentityVerificationPage from './identity-verification/page'
 import SpotHistoryPage from './spot-history/page'
 import SecurityPage from './security/page'
 
+import {
+  LayoutDashboard,
+  ShieldCheck,
+  History,
+  Lock,
+} from 'lucide-react'
 
 
 type VerificationStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | null
@@ -18,11 +24,11 @@ export default function SettingsPage() {
   const { token } = useAuth()
 
   const tabs = [
-    { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-    { id: 'identity', label: 'Identity Verification', icon: '🔐' },
-    { id: 'history', label: 'Spot History', icon: '📝' },
-    { id: 'security', label: 'Security', icon: '🛡️' },
-  ]
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'identity', label: 'Identity Verification', icon: ShieldCheck },
+  { id: 'history', label: 'Spot History', icon: History },
+  { id: 'security', label: 'Security', icon: Lock },
+]
 
   const [totalWithdraw, setTotalWithdraw] = useState(0)
   const [totalDeposits, setTotalDeposits] = useState(0)
@@ -402,22 +408,41 @@ const fetchTotalWithdraw = async () => {
   return (
    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-2">
       {/* Tabs */}
-      <div className="flex flex-wrap gap-4 mb-8 border-b border-slate-700 pb-4">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer transition ${
-              activeTab === tab.id
-                ? 'bg-blue-600 text-white'
-                : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+      {/* Modern Segmented Tabs */}
+<div className="mb-10">
+  <div className="inline-flex p-1.5 bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-2xl">
+    {tabs.map((tab) => {
+      const isActive = activeTab === tab.id
+      const Icon = tab.icon
+
+      return (
+        <button
+          key={tab.id}
+          onClick={() => setActiveTab(tab.id)}
+          className={`
+            relative flex items-center gap-2
+            px-5 py-2.5 rounded-xl
+            text-sm font-medium
+            transition-all duration-300 ease-out
+            ${
+              isActive
+                ? 'bg-slate-800 text-white shadow-[0_0_0_1px_rgba(59,130,246,0.3)]'
+                : 'text-slate-400 hover:text-slate-200'
+            }
+          `}
+        >
+          <Icon
+            size={17}
+            className={`transition-all duration-300 ${
+              isActive ? 'text-blue-400' : ''
             }`}
-          >
-            <span>{tab.icon}</span>
-            <span className="text-sm font-medium">{tab.label}</span>
-          </button>
-        ))}
-      </div>
+          />
+          {tab.label}
+        </button>
+      )
+    })}
+  </div>
+</div>
 
       {/* Tab Content */}
       {renderTabContent()}
