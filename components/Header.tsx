@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { useState, useRef, useEffect } from 'react'
 import { Bell, Settings, LogOut, Menu, X } from 'lucide-react'
 import { useRouter, usePathname } from 'next/navigation'
+import { useAuth } from '@/hooks/useAuth'
 
 interface Notification {
   id: string
@@ -15,18 +16,20 @@ interface HeaderProps {
   notifications?: Notification[]
 }
 
+
 export default function Header({ notifications = [] }: HeaderProps) {
   const router = useRouter()
   const pathname = usePathname()
 
   const [showNotifications, setShowNotifications] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-
+   const { logout } = useAuth() // ✅ MOVE IT HERE
   const notificationRef = useRef<HTMLDivElement>(null)
 
   const handleSignOut = () => {
-    router.push('/login')
-  }
+  logout()
+}
+
 
   const linkClass = (href: string) =>
     pathname === href

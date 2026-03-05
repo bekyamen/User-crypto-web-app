@@ -9,8 +9,23 @@ import Link from "next/link"
 
 export default function AssetsPage() {
 
+  const { data: session, status } = useSession()
+  const router = useRouter()
   const pathname = usePathname()
-  
+
+  // 🔐 PAGE PROTECTION
+  useEffect(() => {
+    if (status === "loading") return
+    if (!session) {
+      router.replace("/login")
+    }
+  }, [session, status, router])
+
+  // prevent flicker
+  if (status === "loading" || !session) {
+    return null
+  }
+
   const linkClass = (path: string) =>
     `transition ${
       pathname === path
@@ -18,14 +33,11 @@ export default function AssetsPage() {
         : "text-slate-400 hover:text-white"
     }`
 
-  const { data: session } = useSession()
-
   const fullName = session?.user?.name || ""
   const firstName = fullName.split(" ")[0] || "User"
   const email = session?.user?.email || ""
   const avatarLetter = firstName.charAt(0).toUpperCase()
 
-  const router = useRouter()
   const [balance, setBalance] = useState<number>(0)
 
   const [showBalance, setShowBalance] = useState(false)
@@ -44,38 +56,35 @@ export default function AssetsPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-
   useEffect(() => {
-  const fetchBalance = async () => {
-    if (!session?.user) return
+    const fetchBalance = async () => {
+      if (!session?.user) return
 
-    try {
-      const token = (session as any)?.accessToken
+      try {
+        const token = (session as any)?.accessToken
 
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/user/me`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/user/me`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        )
+
+        const data = await res.json()
+
+        if (data.success && data.data?.balance !== undefined) {
+          setBalance(Number(data.data.balance))
         }
-      )
-
-      const data = await res.json()
-
-      if (data.success && data.data?.balance !== undefined) {
-        setBalance(Number(data.data.balance))
+      } catch (err) {
+        console.error("Failed to fetch balance:", err)
+        setBalance(0)
       }
-    } catch (err) {
-      console.error("Failed to fetch balance:", err)
-      setBalance(0)
     }
-  }
 
-  fetchBalance()
-}, [session])
-
-
+    fetchBalance()
+  }, [session])
 
   const handleSignOut = () => {
     signOut({ redirect: false })

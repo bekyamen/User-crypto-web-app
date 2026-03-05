@@ -1,8 +1,11 @@
-'use client';
+'use client'
+
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, Calendar } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 
 interface NewsArticle {
   id: string;
@@ -17,6 +20,19 @@ interface NewsArticle {
 const PAGE_SIZE = 20;
 
 export default function NewsPage() {
+  const { data: session, status } = useSession()
+  const router = useRouter()
+
+  // ✅ Redirect if not authenticated
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.replace('/login')
+    }
+  }, [status, router])
+
+  if (status === 'loading') return null
+  if (!session) return null
+
   const [searchQuery, setSearchQuery] = useState('');
   const [news, setNews] = useState<NewsArticle[]>([]);
   const [page, setPage] = useState(1);
@@ -39,7 +55,6 @@ export default function NewsPage() {
       const data: { success: boolean; news: NewsArticle[] } = await res.json();
       if (!data.success) throw new Error('Invalid response');
 
-      // Deduplicate
       const existingKeys = new Set(news.map(n => `${n.url}-${n.timestamp}`));
       const newUniqueNews = data.news.filter(
         n => !existingKeys.has(`${n.url}-${n.timestamp}`)

@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { Copy } from 'lucide-react'
+import React, { useEffect, useState } from 'react'
 import { useAuth } from '@/hooks/useAuth'
+import { Copy } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 
 type CoinType = 'BTC' | 'ETH' | 'USDT'
 type NetworkType = 'BTC' | 'ERC20' | 'TRC20'
@@ -16,24 +17,39 @@ interface WalletData {
 }
 
 export default function DepositPage() {
-  const { token } = useAuth()
-
+  const { token, isLoading } = useAuth()
+  const router = useRouter()
+  
   const [selectedCrypto, setSelectedCrypto] = useState<CoinType>('BTC')
   const [selectedNetwork, setSelectedNetwork] = useState<NetworkType>('BTC')
-
   const [walletData, setWalletData] = useState<WalletData | null>(null)
   const [loadingWallet, setLoadingWallet] = useState(false)
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
   const [amount, setAmount] = useState('')
   const [transactionHash, setTransactionHash] = useState('')
   const [proofFile, setProofFile] = useState<File | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState<string | null>(null)
 
-  /* ---------------- NETWORK OPTIONS ---------------- */
+  // -------------------- PROTECTED PAGE --------------------
+ 
+  const [authChecked, setAuthChecked] = useState(false)
+  
+   useEffect(() => {
+    if (!isLoading) {
+      if (!token) {
+        // Not logged in → redirect to login
+        router.replace(`/login?redirect=/assets/deposit`)
+      } else {
+        // Logged in → redirect to /assets/deposit
+        router.replace('/assets/deposit')
+      }
+      setAuthChecked(true)
+    }
+  }, [token, isLoading, router])
 
+  // -------------------- NETWORKS --------------------
   const getNetworks = (coin: CoinType): NetworkType[] => {
     if (coin === 'BTC') return ['BTC']
     if (coin === 'ETH') return ['ERC20']
@@ -41,8 +57,7 @@ export default function DepositPage() {
     return ['BTC']
   }
 
-  /* ---------------- FETCH WALLET ---------------- */
-
+  // -------------------- FETCH WALLET --------------------
   const fetchWallet = async (coin: CoinType, network: NetworkType) => {
     if (!token) return
 
@@ -72,11 +87,12 @@ export default function DepositPage() {
   }
 
   useEffect(() => {
-    fetchWallet(selectedCrypto, selectedNetwork)
+    if (token) {
+      fetchWallet(selectedCrypto, selectedNetwork)
+    }
   }, [selectedCrypto, selectedNetwork, token])
 
-  /* ---------------- COPY ADDRESS ---------------- */
-
+  // -------------------- COPY ADDRESS --------------------
   const handleCopy = async () => {
     if (!walletData?.address) return
     await navigator.clipboard.writeText(walletData.address)
@@ -84,11 +100,9 @@ export default function DepositPage() {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  /* ---------------- SUBMIT DEPOSIT ---------------- */
-
+  // -------------------- SUBMIT DEPOSIT --------------------
   const handleDepositSubmit = async () => {
     if (!token) return
-
     if (!amount || !transactionHash || !proofFile) {
       setError('Please fill all fields and upload proof image')
       return
@@ -131,7 +145,11 @@ export default function DepositPage() {
     }
   }
 
-  /* ---------------- UI ---------------- */
+  // -------------------- RENDER --------------------
+  // Wait until auth status is loaded
+  if (isLoading || !token) {
+    return null // or a spinner if you like
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-white">
@@ -163,15 +181,11 @@ export default function DepositPage() {
           <label className="text-sm text-slate-400">Select Network</label>
           <select
             value={selectedNetwork}
-            onChange={(e) =>
-              setSelectedNetwork(e.target.value as NetworkType)
-            }
+            onChange={(e) => setSelectedNetwork(e.target.value as NetworkType)}
             className="w-full mt-2 bg-slate-800 border border-slate-700 rounded-lg px-4 py-3"
           >
-            {getNetworks(selectedCrypto).map((net) => (
-              <option key={net} value={net}>
-                {net}
-              </option>
+            {getNetworks(selectedCrypto).map(net => (
+              <option key={net} value={net}>{net}</option>
             ))}
           </select>
         </div>
@@ -184,11 +198,7 @@ export default function DepositPage() {
           {loadingWallet ? (
             <p className="text-gray-500">Loading QR Code...</p>
           ) : walletData?.qrImage ? (
-            <img
-              src={walletData.qrImage}
-              alt="QR Code"
-              className="w-full h-full object-contain p-4"
-            />
+            <img src={walletData.qrImage} alt="QR Code" className="w-full h-full object-contain p-4" />
           ) : (
             <p className="text-gray-500">No QR code available</p>
           )}
@@ -208,25 +218,19 @@ export default function DepositPage() {
                 readOnly
                 className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-sm"
               />
-              <button
-                onClick={handleCopy}
-                className="px-4 bg-slate-700 rounded-lg"
-              >
+              <button onClick={handleCopy} className="px-4 bg-slate-700 rounded-lg">
                 {copied ? 'Copied' : <Copy size={18} />}
               </button>
             </div>
           </div>
         )}
 
-        {/* 🔥 Dynamic Warning Section */}
+        {/* Warning Section */}
         {walletData && (
           <div className="bg-slate-800 border border-slate-700 rounded-lg p-4 text-sm space-y-2 text-slate-300">
             <p>• Send only {walletData.coin} to this address</p>
             <p>• Network: {walletData.network}</p>
-            <p>
-              • Minimum deposit:{' '}
-              {walletData.minDepositUsd ?? 10} USD
-            </p>
+            <p>• Minimum deposit: {walletData.minDepositUsd ?? 10} USD</p>
           </div>
         )}
 
@@ -251,9 +255,7 @@ export default function DepositPage() {
           <input
             type="file"
             accept="image/*"
-            onChange={(e) =>
-              setProofFile(e.target.files?.[0] || null)
-            }
+            onChange={(e) => setProofFile(e.target.files?.[0] || null)}
             className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2"
           />
 

@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSession, signIn, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import { signIn, signOut, useSession } from 'next-auth/react'
 import { authApi } from '@/lib/api'
 
 export interface User {
@@ -22,51 +22,47 @@ export interface RegisterData {
   fundsPassword: string
 }
 
-
-
 export function useAuth() {
   const router = useRouter()
   const { data: session, status } = useSession()
 
   const [user, setUser] = useState<User | null>(null)
   const [token, setToken] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(status === 'loading')
+  const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Sync session
+  // Sync session to state
   useEffect(() => {
-    if (session?.user) {
-      setUser({
-  id: session.user.id as string,
-  name: session.user.name ?? '',
-  email: session.user.email ?? '',
-  role: (session.user.role as 'USER' | 'ADMIN') ?? 'USER',
-})
+    if (status === 'loading') {
+      setIsLoading(true)
+      return
+    }
 
-      setToken(session.accessToken || null)
+    if (session?.user && session.accessToken) {
+      setUser({
+        id: session.user.id as string,
+        name: session.user.name ?? '',
+        email: session.user.email ?? '',
+        role: (session.user.role as 'USER' | 'ADMIN') ?? 'USER',
+      })
+      setToken(session.accessToken)
     } else {
       setUser(null)
       setToken(null)
     }
     setIsLoading(false)
-  }, [session])
+  }, [session, status])
 
-  // ✅ Register → Redirect to login
+  // Register
   const register = async (data: RegisterData) => {
     setIsLoading(true)
     setError(null)
-
     try {
       await authApi.register(data)
-
-      router.push('/login') // Redirect to login page
+      router.push('/login')
       return { success: true }
     } catch (err: any) {
-      const message =
-        err?.response?.data?.message ||
-        err.message ||
-        'Registration failed'
-
+      const message = err?.response?.data?.message || err.message || 'Registration failed'
       setError(message)
       return { success: false, error: message }
     } finally {
@@ -74,7 +70,7 @@ export function useAuth() {
     }
   }
 
-  // ✅ Login
+  // Login (client-side, no refresh)
   const login = async (email: string, password: string) => {
     setIsLoading(true)
     setError(null)
@@ -88,7 +84,7 @@ export function useAuth() {
     setIsLoading(false)
 
     if (!res?.error) {
-      router.push('/demo') // after login go to demo
+      router.replace('/demo') // client-side redirect
       return { success: true }
     } else {
       setError('Invalid email or password')
@@ -96,7 +92,7 @@ export function useAuth() {
     }
   }
 
-  // ✅ Logout
+  // Logout (client-side redirect)
   const logout = () => {
     signOut({ redirect: true, callbackUrl: '/login' })
   }
