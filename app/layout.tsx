@@ -10,40 +10,35 @@ const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: 'BitorynFX Trading  ',
-  description: 'Professional trading platform for cryptocurrencies, forex, and commodities with institutional-grade tools and lightning-fast execution.',
-  generator: 'our app',
-  icons: {
-    icon: [
-      { url: '/iconlogo.jpg', media: '(prefers-color-scheme: light)' },
-      { url: '/iconlogo.jpg', media: '(prefers-color-scheme: dark)' },
-      { url: '/iconlogo.jpg', type: 'image/svg+xml' },
-    ],
-    apple: '/iconlogo.jpg',
-  },
+  title: 'BitorynFX Trading',
+  description:
+    'Professional trading platform for cryptocurrencies, forex, and commodities with institutional-grade tools and lightning-fast execution.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{
-          __html: `
-            try {
-              if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                document.documentElement.classList.add('dark')
-              } else {
-                document.documentElement.classList.remove('dark')
-              }
-            } catch (e) {}
-          `
-        }} />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                if (localStorage.getItem('theme') === 'dark' || 
+                  (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                  document.documentElement.classList.add('dark')
+                } else {
+                  document.documentElement.classList.remove('dark')
+                }
+              } catch (e) {}
+            `,
+          }}
+        />
       </head>
-      <body className="font-sans antialiased text-white">
-        {/* This wrapper will hide header on specific pages */}
-        <HeaderWrapper />
 
+      <body className="font-sans antialiased text-white">
+        {/* ✅ MOVE Providers ABOVE EVERYTHING */}
         <Providers>
+          <HeaderWrapper />
           <main>{children}</main>
         </Providers>
 
