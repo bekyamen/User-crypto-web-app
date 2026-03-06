@@ -4,7 +4,7 @@ import { useSession, signOut } from 'next-auth/react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
-import { useRouter, usePathname } from "next/navigation"
+import { useRouter } from "next/navigation"
 
 import {
   ChevronLeft,
@@ -28,12 +28,9 @@ export default function HomePage() {
   const { data: session, status } = useSession()
   const router = useRouter()
 
-  useEffect(() => {
-    if (status === 'unauthenticated') router.replace('/login')
-  }, [status, router])
-
-  if (status === 'loading' || !session) return null
-
+  // -----------------------------
+  // ✅ ALWAYS CALL HOOKS FIRST
+  // -----------------------------
   const [balance, setBalance] = useState<number | null>(null)
   const [showBalance, setShowBalance] = useState(false)
   const [carouselIndex, setCarouselIndex] = useState(0)
@@ -45,22 +42,36 @@ export default function HomePage() {
     { title: "Advanced Trading Tools", description: "Professional charts and analytics for informed decisions", image: "/sliderthree.jpg" },
   ]
 
-  // Fetch user balance
+  // -----------------------------
+  // Redirect if unauthenticated
+  // -----------------------------
   useEffect(() => {
+    if (status === 'unauthenticated') router.replace('/login')
+  }, [status, router])
+
+  // -----------------------------
+  // Fetch user balance
+  // -----------------------------
+  useEffect(() => {
+    if (!session) return
     const fetchBalance = async () => {
       try {
-        const token = session?.accessToken
+        const token = session.accessToken
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/me`, {
           headers: { Authorization: `Bearer ${token}` }
         })
         const data = await res.json()
         setBalance(data?.data?.balance ?? 0)
-      } catch { setBalance(0) }
+      } catch {
+        setBalance(0)
+      }
     }
     fetchBalance()
   }, [session])
 
+  // -----------------------------
   // Fetch Binance tickers
+  // -----------------------------
   useEffect(() => {
     const fetchTickers = async () => {
       try {
@@ -74,18 +85,30 @@ export default function HomePage() {
     return () => clearInterval(interval)
   }, [])
 
+  // -----------------------------
   // Carousel auto-slide
+  // -----------------------------
   useEffect(() => {
     const interval = setInterval(() => {
-      setCarouselIndex((prev) => (prev + 1) % carouselSlides.length)
+      setCarouselIndex(prev => (prev + 1) % carouselSlides.length)
     }, 5000)
     return () => clearInterval(interval)
   }, [])
 
-  const prevSlide = () => setCarouselIndex((prev) => (prev - 1 + carouselSlides.length) % carouselSlides.length)
-  const nextSlide = () => setCarouselIndex((prev) => (prev + 1) % carouselSlides.length)
+  const prevSlide = () => setCarouselIndex(prev => (prev - 1 + carouselSlides.length) % carouselSlides.length)
+  const nextSlide = () => setCarouselIndex(prev => (prev + 1) % carouselSlides.length)
   const goToSlide = (index: number) => setCarouselIndex(index)
 
+  // -----------------------------
+  // Handle loading state
+  // -----------------------------
+  if (status === 'loading' || !session) {
+    return <div className="min-h-screen flex items-center justify-center text-white">Loading...</div>
+  }
+
+  // -----------------------------
+  // Render page (unchanged)
+  // -----------------------------
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

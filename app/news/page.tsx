@@ -23,16 +23,7 @@ export default function NewsPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
 
-  // ✅ Redirect if not authenticated
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.replace('/login')
-    }
-  }, [status, router])
-
-  if (status === 'loading') return null
-  if (!session) return null
-
+  // ---------------- State ----------------
   const [searchQuery, setSearchQuery] = useState('');
   const [news, setNews] = useState<NewsArticle[]>([]);
   const [page, setPage] = useState(1);
@@ -42,8 +33,16 @@ export default function NewsPage() {
 
   const observerTarget = useRef<HTMLDivElement | null>(null);
 
+  // ---------------- Redirect if unauthenticated ----------------
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.replace('/login')
+    }
+  }, [status, router])
+
+  // ---------------- Fetch news ----------------
   const fetchNews = useCallback(async () => {
-    if (isLoading || !hasMore) return;
+    if (isLoading || !hasMore || !session) return;
 
     setIsLoading(true);
     setError(null);
@@ -72,10 +71,11 @@ export default function NewsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading, hasMore, news, page]);
+  }, [isLoading, hasMore, news, page, session]);
 
-  /* ---------------- Infinite Scroll ---------------- */
+  // ---------------- Infinite scroll ----------------
   useEffect(() => {
+    if (!session) return
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) fetchNews();
@@ -85,9 +85,9 @@ export default function NewsPage() {
 
     if (observerTarget.current) observer.observe(observerTarget.current);
     return () => observer.disconnect();
-  }, [fetchNews]);
+  }, [fetchNews, session]);
 
-  /* ---------------- Search ---------------- */
+  // ---------------- Search ----------------
   const filteredNews = searchQuery
     ? news.filter(
         n =>
@@ -104,8 +104,15 @@ export default function NewsPage() {
       minute: '2-digit',
     });
 
+  // ---------------- Handle loading ----------------
+  if (status === 'loading' || !session) {
+    return <div className="min-h-screen flex items-center justify-center text-white">Loading...</div>
+  }
+
+  // ---------------- Render page (components untouched) ----------------
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
+      
       <header className="border-b border-slate-700/50 sticky top-0 z-40 bg-slate-950/90 backdrop-blur">
         <div className="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
@@ -127,7 +134,8 @@ export default function NewsPage() {
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 pb-16 pt-6">
+
+       <main className="max-w-4xl mx-auto px-4 pb-16 pt-6">
         {filteredNews.map((article, index) => (
           <div
             key={`${article.url}-${article.timestamp}-${index}`}
@@ -172,5 +180,5 @@ export default function NewsPage() {
         <div ref={observerTarget} />
       </main>
     </div>
-  );
+  )
 }

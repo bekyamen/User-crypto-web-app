@@ -8,7 +8,6 @@ import { useRouter, usePathname } from "next/navigation"
 import { signOut, useSession } from 'next-auth/react'
 import NotificationDropdown from '@/components/NotificationDropdown'
 
-
 type Crypto = {
   symbol: string
   lastPrice: string
@@ -23,29 +22,6 @@ export default function MarketPage() {
   const router = useRouter()
   const pathname = usePathname()
 
-  // ✅ Redirect to login if unauthenticated
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.replace('/login')
-    }
-  }, [status, router])
-
-  if (status === 'loading') return null
-  if (!session) return null
-
-  const linkClass = (path: string) =>
-    `transition ${
-      pathname === path
-        ? "text-blue-400 font-semibold"
-        : "text-slate-400 hover:text-white"
-    }`
-
-  // ---------------- Sign Out ----------------
-  const handleSignOut = () => {
-    signOut({ redirect: false })
-    router.push('/login')
-  }
-
   // ---------------- State ----------------
   const [cryptos, setCryptos] = useState<Crypto[]>([])
   const [filteredCryptos, setFilteredCryptos] = useState<Crypto[]>([])
@@ -53,36 +29,44 @@ export default function MarketPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // ---------------- Fetch Market ----------------
-  const fetchMarket = async () => {
-    try {
-      setError(null)
-      const res = await fetch('/api/market/binance')
-      const data = await res.json()
+  // ---------------- Redirect if unauthenticated ----------------
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.replace('/login')
+    }
+  }, [status, router])
 
-      if (res.ok && Array.isArray(data)) {
-        setCryptos(data)
-        setFilteredCryptos(data)
-      } else {
+  // ---------------- Fetch Market ----------------
+  useEffect(() => {
+    if (!session) return
+    const fetchMarket = async () => {
+      try {
+        setError(null)
+        const res = await fetch('/api/market/binance')
+        const data = await res.json()
+
+        if (res.ok && Array.isArray(data)) {
+          setCryptos(data)
+          setFilteredCryptos(data)
+        } else {
+          setCryptos([])
+          setFilteredCryptos([])
+          setError('Failed to load market data.')
+        }
+      } catch (err) {
+        console.error('Market fetch error:', err)
         setCryptos([])
         setFilteredCryptos([])
-        setError('Failed to load market data.')
+        setError('Connection error.')
+      } finally {
+        setLoading(false)
       }
-    } catch (err) {
-      console.error('Market fetch error:', err)
-      setCryptos([])
-      setFilteredCryptos([])
-      setError('Connection error.')
-    } finally {
-      setLoading(false)
     }
-  }
 
-  useEffect(() => {
     fetchMarket()
     const interval = setInterval(fetchMarket, 10000)
     return () => clearInterval(interval)
-  }, [])
+  }, [session])
 
   // ---------------- Search ----------------
   const handleSearch = (value: string) => {
@@ -106,9 +90,28 @@ export default function MarketPage() {
   const topGainers = sortedByChange.slice(0, 5)
   const topLosers = sortedByChange.slice(-5).reverse()
 
+  const linkClass = (path: string) =>
+    `transition ${
+      pathname === path
+        ? "text-blue-400 font-semibold"
+        : "text-slate-400 hover:text-white"
+    }`
+
+  // ---------------- Sign Out ----------------
+  const handleSignOut = () => {
+    signOut({ redirect: false })
+    router.push('/login')
+  }
+
+  // ---------------- Handle loading ----------------
+  if (status === 'loading' || !session) {
+    return <div className="min-h-screen flex items-center justify-center text-white">Loading...</div>
+  }
+
+  // ---------------- Render page (components untouched) ----------------
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#1e293b,_#020617_70%)] text-white py-10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
+       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
 
         {/* Hero Title */}
         <div className="mb-10">
