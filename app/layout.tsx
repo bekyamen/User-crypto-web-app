@@ -13,6 +13,18 @@ export const metadata: Metadata = {
   title: 'BitorynFX Trading',
   description:
     'Professional trading platform for cryptocurrencies, forex, and commodities with institutional-grade tools and lightning-fast execution.',
+  icons: [
+    {
+      url: '/iconlogo.png',  // small square PNG, e.g., 32x32
+      sizes: '32x32',
+      type: 'image/png',
+    },
+    {
+      url: '/iconlogo.png',  // optional higher res for retina
+      sizes: '64x64',
+      type: 'image/png',
+    },
+  ],
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

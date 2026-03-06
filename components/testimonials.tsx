@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, Star } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import Image from 'next/image'
 
 interface Testimonial {
   id: number
@@ -16,26 +17,28 @@ interface Testimonial {
 const testimonials: Testimonial[] = [
   {
     id: 1,
-    quote: 'Bitorynfx Trading has transformed my trading experience. The platform is fast, reliable, and the fees are unbeatable. Highly recommended!',
-    author: 'Sarah Chen',
+    quote: 'The interface is very clean and easy to use. I especially like the advanced charts and risk management tools. It makes trading much more professional.',
+    author: 'James Walker',
     role: 'Professional Trader',
-    avatar: 'SC',
+    avatar: '/jems.jpg',
     initials: 'SC'
   },
+
   {
     id: 2,
-    quote: 'The security features give me peace of mind, and the user interface is intuitive. Bit trading platform I\'ve used.',
-    author: 'Michael Rodriguez',
+    quote: "I’ve tried many trading platforms, but this one is by far the most reliable. The execution speed is incredible and withdrawals are always fast. Highly recommended for serious traders",
+    author: 'Michael Carter',
     role: 'Crypto Investor',
-    avatar: 'MR',
+    avatar: '/miki.webp',
     initials: 'MR'
   },
+
   {
     id: 3,
-    quote: 'Real-time data and lightning-fast execution. This is exactly what I needed for my trading strategy. Excellent service!',
-    author: 'Emma Thompson',
+    quote: 'I love the dashboard and analytics. It helps me track my performance and improve my strategy.',
+    author: 'Lukas Schneider',
     role: 'Day Trader',
-    avatar: 'ET',
+    avatar: '/lukas.jpeg',
     initials: 'ET'
   }
 ]
@@ -113,9 +116,14 @@ export function TestimonialsSection() {
 
                   {/* Author */}
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-400 to-pink-400 flex items-center justify-center text-white font-bold">
-                      {testimonial.initials[0]}
-                    </div>
+                    <div className="w-12 h-12 rounded-full overflow-hidden border border-slate-700 relative">
+  <Image
+    src={testimonial.avatar}
+    alt={testimonial.author}
+    fill
+    className="object-cover"
+  />
+</div>
                     <div>
                       <div className="font-semibold text-white">
                         {testimonial.author}
