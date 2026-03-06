@@ -1,254 +1,281 @@
-'use client'
-
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useMemo } from 'react'
 import {
   createChart,
-  IChartApi,
-  UTCTimestamp,
   CandlestickSeries,
+  HistogramSeries,
+  IChartApi,
 } from 'lightweight-charts'
+import {
+  SIMULATED_GOLD_MARKETS,
+  generateGoldCandleData,
+  generateGoldOrderBook,
+  GoldCandle,
+  GoldMarket,
+} from '@/data/simulatedGoldMarkets'
 
-type TF = '1min' | '5min' | '15min' | '1h' | '4h'
+type TF = '1m' | '15m' | '1h' | '4h' | '1d'
 
-interface Candle {
-  time: UTCTimestamp
-  open: number
-  high: number
-  low: number
-  close: number
-}
+export function GoldDashboard() {
+  const [selectedPair, setSelectedPair] = useState('PAXG/USDT')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [tf, setTf] = useState<TF>('15m')
+  const [markets, setMarkets] = useState<GoldMarket[]>(SIMULATED_GOLD_MARKETS)
+  const [bids, setBids] = useState<[string, string][]>([])
+  const [asks, setAsks] = useState<[string, string][]>([])
 
-interface OrderLevel {
-  price: number
-  size: number
-}
-
-interface Trade {
-  price: number
-  size: number
-  side: 'buy' | 'sell'
-  time: string
-}
-
-type MarketSymbol = 'XAU/USD' | 'XAU/EUR' | 'XAU/GBP'
-
-export default function GoldDashboard() {
-  const API_KEY = 'a0438f8d465f4dc6a8c4689e9b84281c'
-  const GOLD_SYMBOLS: MarketSymbol[] = ['XAU/USD', 'XAU/EUR', 'XAU/GBP']
-
-  const [symbol, setSymbol] = useState<MarketSymbol>('XAU/USD')
-  const [tf, setTf] = useState<TF>('1min')
-  const [price, setPrice] = useState(0)
-  const [change, setChange] = useState(0)
-  const [high24, setHigh24] = useState(0)
-  const [low24, setLow24] = useState(0)
-
-  const [marketPrices, setMarketPrices] = useState<Record<MarketSymbol, number>>({
-    'XAU/USD': 0,
-    'XAU/EUR': 0,
-    'XAU/GBP': 0,
-  })
-
-  const [orderBook, setOrderBook] = useState<{ bids: OrderLevel[]; asks: OrderLevel[] }>({
-    bids: [],
-    asks: [],
-  })
-
-  const [trades, setTrades] = useState<Trade[]>([])
-
-  const chartRef = useRef<HTMLDivElement>(null)
+  const chartEl = useRef<HTMLDivElement>(null)
   const chart = useRef<IChartApi | null>(null)
   const candleSeries = useRef<any>(null)
-  const lastCandle = useRef<Candle | null>(null)
+  const volumeSeries = useRef<any>(null)
 
-  /* ===================== INIT CHART ===================== */
+  const currentMarket = markets.find((m) => m.symbol === selectedPair)
+  const currentPrice = currentMarket?.price ?? 0
+
+  const filteredMarkets = useMemo(() => {
+    return markets.filter(
+      (m) =>
+        m.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        m.name.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  }, [markets, searchQuery])
+
+  // Simulate price ticks
   useEffect(() => {
-    if (!chartRef.current) return
-    chart.current = createChart(chartRef.current, {
-      layout: { background: { color: '#071225' }, textColor: '#b9c3d6' },
-      grid: { vertLines: { color: 'rgba(255,255,255,0.06)' }, horzLines: { color: 'rgba(255,255,255,0.06)' } },
-      rightPriceScale: { borderColor: '#334155' },
-      timeScale: { timeVisible: true },
+    const interval = setInterval(() => {
+      setMarkets((prev) =>
+        prev.map((m) => {
+          const tick = m.price * (Math.random() - 0.5) * 0.0006
+          return {
+            ...m,
+            price: m.price + tick,
+            change: m.change + (Math.random() - 0.5) * 0.01,
+          }
+        })
+      )
+    }, 2000)
+    return () => clearInterval(interval)
+  }, [])
+
+  // Update order book
+  useEffect(() => {
+    const updateBook = () => {
+      const { bids: b, asks: a } = generateGoldOrderBook(currentPrice || 1)
+      setBids(b)
+      setAsks(a)
+    }
+    updateBook()
+    const interval = setInterval(updateBook, 1500)
+    return () => clearInterval(interval)
+  }, [selectedPair, currentPrice])
+
+  // Chart init
+  useEffect(() => {
+    if (!chartEl.current) return
+
+    chart.current = createChart(chartEl.current, {
+      layout: {
+        background: { color: 'hsl(222, 45%, 9%)' },
+        textColor: 'hsl(215, 25%, 55%)',
+      },
+      grid: {
+        vertLines: { color: 'rgba(255,255,255,0.04)' },
+        horzLines: { color: 'rgba(255,255,255,0.04)' },
+      },
+      crosshair: {
+        vertLine: { color: 'hsl(25, 95%, 55%)', width: 1, style: 2 },
+        horzLine: { color: 'hsl(25, 95%, 55%)', width: 1, style: 2 },
+      },
+      rightPriceScale: { borderColor: 'hsl(215, 25%, 18%)' },
+      timeScale: { borderColor: 'hsl(215, 25%, 18%)' },
     })
-    candleSeries.current = chart.current.addSeries(CandlestickSeries)
+
+    candleSeries.current = chart.current.addSeries(CandlestickSeries, {
+      upColor: 'hsl(145, 65%, 45%)',
+      downColor: 'hsl(0, 72%, 55%)',
+      borderUpColor: 'hsl(145, 65%, 45%)',
+      borderDownColor: 'hsl(0, 72%, 55%)',
+      wickUpColor: 'hsl(145, 65%, 45%)',
+      wickDownColor: 'hsl(0, 72%, 55%)',
+    })
+
+    volumeSeries.current = chart.current.addSeries(HistogramSeries, {
+      priceFormat: { type: 'volume' },
+      priceScaleId: '',
+    })
+
+    volumeSeries.current.priceScale().applyOptions({
+      scaleMargins: { top: 0.85, bottom: 0 },
+    })
+
     return () => chart.current?.remove()
   }, [])
 
-  /* ===================== LOAD HISTORY ===================== */
+  // Load data on pair/tf change
   useEffect(() => {
-    async function loadHistory() {
-      try {
-        const res = await fetch(
-          `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${tf}&outputsize=200&apikey=${API_KEY}`
-        )
-        const data = await res.json()
-        if (!data.values) return
-        const formatted: Candle[] = data.values
-          .map((c: any) => ({
-            time: Math.floor(new Date(c.datetime).getTime() / 1000) as UTCTimestamp,
-            open: +c.open,
-            high: +c.high,
-            low: +c.low,
-            close: +c.close,
-          }))
-          .reverse()
-        candleSeries.current.setData(formatted)
-        const last = formatted[formatted.length - 1]
-        lastCandle.current = last
-        setPrice(last.close)
-        setHigh24(Math.max(...formatted.map(c => c.high)))
-        setLow24(Math.min(...formatted.map(c => c.low)))
-        const dayOpen = formatted[0].open
-        setChange(((last.close - dayOpen) / dayOpen) * 100)
-      } catch (err) {
-        console.error('Failed to load history:', err)
-      }
-    }
-    loadHistory()
-  }, [symbol, tf])
+    if (!candleSeries.current || !volumeSeries.current) return
 
-  /* ===================== ORDER BOOK SIMULATION ===================== */
-  const generateOrderBook = (mid: number) => {
-    const depth = 12
-    const spread = 0.3
-    const bids: OrderLevel[] = []
-    const asks: OrderLevel[] = []
-    for (let i = 1; i <= depth; i++) {
-      bids.push({ price: +(mid - spread - i * 0.1).toFixed(2), size: +(Math.random() * 20 + 1).toFixed(2) })
-      asks.push({ price: +(mid + spread + i * 0.1).toFixed(2), size: +(Math.random() * 20 + 1).toFixed(2) })
-    }
-    return { bids, asks }
-  }
+    const basePrice = currentMarket?.price ?? 1
+    const data = generateGoldCandleData(basePrice)
 
-  /* ===================== TRADE SIMULATION ===================== */
-  const generateTrade = (price: number): Trade => ({
-    price,
-    size: +(Math.random() * 5 + 0.1).toFixed(2),
-    side: Math.random() > 0.5 ? 'buy' : 'sell',
-    time: new Date().toLocaleTimeString(),
-  })
+    candleSeries.current.setData(data)
+    volumeSeries.current.setData(
+      data.map((c: GoldCandle) => ({
+        time: c.time,
+        value: c.volume,
+        color: c.close >= c.open ? 'rgba(56,176,120,0.3)' : 'rgba(220,80,80,0.3)',
+      }))
+    )
+    chart.current?.timeScale().fitContent()
+  }, [selectedPair, tf])
 
-  /* ===================== LIVE PRICES FETCH ===================== */
+  // Resize
   useEffect(() => {
-    async function fetchLivePrices() {
-      try {
-        const res = await fetch(
-          `https://api.twelvedata.com/price?symbol=${GOLD_SYMBOLS.join(',')}&apikey=${API_KEY}`
-        )
-        const data = await res.json()
-        const updatedPrices: Record<MarketSymbol, number> = { ...marketPrices }
-        GOLD_SYMBOLS.forEach(s => {
-          if (data[s]?.price) updatedPrices[s] = parseFloat(data[s].price)
+    const handleResize = () => {
+      if (chart.current && chartEl.current) {
+        chart.current.applyOptions({
+          width: chartEl.current.clientWidth,
+          height: chartEl.current.clientHeight,
         })
-        setMarketPrices(updatedPrices)
-        if (lastCandle.current && updatedPrices[symbol]) {
-          const livePrice = updatedPrices[symbol]
-          setPrice(livePrice)
-          const updated: Candle = {
-            ...lastCandle.current,
-            close: livePrice,
-            high: Math.max(lastCandle.current.high, livePrice),
-            low: Math.min(lastCandle.current.low, livePrice),
-          }
-          candleSeries.current.update(updated)
-          lastCandle.current = updated
-          setOrderBook(generateOrderBook(livePrice))
-          setTrades(prev => [generateTrade(livePrice), ...prev.slice(0, 30)])
-        }
-      } catch (err) {
-        console.error('Failed to fetch live prices', err)
       }
     }
-    fetchLivePrices()
-    const interval = setInterval(fetchLivePrices, 5000)
-    return () => clearInterval(interval)
-  }, [symbol])
+    window.addEventListener('resize', handleResize)
+    handleResize()
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
-  /* ===================== RESPONSIVE UI ===================== */
+  const decimals = currentPrice < 10 ? 4 : 2
+
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 lg:gap-6">
-
-      {/* ===== LEFT MARKETS ===== */}
-      <div className="xl:col-span-3 order-2 xl:order-1">
-        <div className="bg-slate-900/50 border border-slate-800 rounded-lg p-4 xl:sticky xl:top-24">
+    <div className="flex h-screen w-full overflow-hidden">
+      {/* LEFT: Market List */}
+      <div className="w-64 flex-shrink-0 border-r border-border bg-card flex flex-col">
+        <div className="p-3 border-b border-border">
           <input
-            type="text"
-            placeholder="Search pairs..."
-            value={symbol}
-            onChange={() => {}}
-            className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white mb-4"
+            placeholder="Search metals..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-secondary border border-border rounded px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
           />
+        </div>
 
-          <div className="space-y-2 max-h-[70vh] overflow-y-auto">
-            {GOLD_SYMBOLS.map(s => (
+        <div className="flex-1 overflow-y-auto">
+          {filteredMarkets.map((m, idx) => (
+            <button
+              key={m.symbol}
+              onClick={() => setSelectedPair(m.symbol)}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors ${
+                selectedPair === m.symbol
+                  ? 'bg-accent/20 border-l-2 border-l-primary'
+                  : 'hover:bg-secondary border-l-2 border-l-transparent'
+              }`}
+            >
+              <span className="text-muted-foreground text-xs w-5 text-right">
+                {idx + 1}
+              </span>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium text-foreground truncate">
+                  {m.name}
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-xs text-foreground">
+                  {m.price.toFixed(decimals < 3 ? 2 : 4)}
+                </div>
+                {m.change !== 0 && (
+                  <div
+                    className={`text-xs font-medium ${
+                      m.change >= 0 ? 'text-success' : 'text-destructive'
+                    }`}
+                  >
+                    {m.change >= 0 ? '+' : ''}
+                    {m.change.toFixed(2)}%
+                  </div>
+                )}
+              </div>
+              {selectedPair === m.symbol && (
+                <div className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* CENTER: Chart */}
+      <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-card">
+          <div className="flex items-center gap-4">
+            <h2 className="text-lg font-bold text-foreground">{selectedPair}</h2>
+            <span className="text-xl font-mono text-foreground">
+              {currentPrice > 0 ? currentPrice.toFixed(decimals) : '--'}
+            </span>
+            <span
+              className={`text-sm font-medium ${
+                (currentMarket?.change ?? 0) >= 0
+                  ? 'text-success'
+                  : 'text-destructive'
+              }`}
+            >
+              {currentMarket
+                ? `${currentMarket.change >= 0 ? '+' : ''}${currentMarket.change.toFixed(2)}%`
+                : '--'}
+            </span>
+          </div>
+
+          <div className="flex gap-1">
+            {(['1m', '15m', '1h', '4h', '1d'] as TF[]).map((x) => (
               <button
-                key={s}
-                onClick={() => setSymbol(s)}
-                className={`w-full px-3 py-2 rounded ${
-                  symbol === s
-                    ? 'bg-blue-500/20 border border-blue-500/50'
-                    : 'hover:bg-slate-800'
+                key={x}
+                onClick={() => setTf(x)}
+                className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                  tf === x
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-secondary text-muted-foreground hover:text-foreground'
                 }`}
               >
-                <div className="flex justify-between">
-                  <span className="text-white text-sm font-medium">{s}</span>
-                  <span className="text-slate-400 text-sm">{marketPrices[s]?.toFixed(2) ?? '--'}</span>
-                </div>
+                {x}
               </button>
             ))}
           </div>
         </div>
+
+        <div ref={chartEl} className="flex-1" />
       </div>
 
-      {/* ===== CENTER CHART ===== */}
-      <div className="xl:col-span-6 order-1 xl:order-2 bg-slate-900 border border-slate-800 rounded-lg p-4 sm:p-6">
-        <div className="mb-4">
-          <div className="text-2xl sm:text-3xl lg:text-4xl text-white font-bold">{price.toFixed(2)}</div>
-          <div className={`${change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-            {change >= 0 ? '▲' : '▼'} {change.toFixed(2)}%
+      {/* RIGHT: Order Book */}
+      <div className="w-56 flex-shrink-0 border-l border-border bg-card flex flex-col">
+        <div className="px-3 py-3 border-b border-border">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            Order Book
+          </h3>
+        </div>
+
+        <div className="flex-1 overflow-y-auto text-xs font-mono">
+          <div className="px-3 py-1 flex justify-between text-muted-foreground border-b border-border">
+            <span>Price</span>
+            <span>Amount</span>
           </div>
-        </div>
 
-        <div className="flex flex-wrap gap-2 mb-4">
-          {(['1min','5min','15min','1h','4h'] as TF[]).map(t => (
-            <button
-              key={t}
-              onClick={() => setTf(t)}
-              className={`px-3 py-1 rounded text-sm ${
-                tf === t ? 'bg-orange-500 text-white' : 'bg-slate-800 text-slate-400'
-              }`}
-            >
-              {t}
-            </button>
-          ))}
-        </div>
-
-        <div ref={chartRef} className="h-[350px] sm:h-[450px] lg:h-[600px] w-full" />
-      </div>
-
-      {/* ===== ORDER BOOK ===== */}
-      <div className="xl:col-span-3 order-3 bg-slate-900 border border-slate-800 rounded-lg p-4">
-        <h3 className="text-white font-semibold mb-4">Order Book</h3>
-
-        <div className="max-h-[350px] sm:max-h-[450px] lg:max-h-[600px] overflow-y-auto text-xs">
-          {orderBook.asks.slice().reverse().map((a, i) => (
-            <div key={i} className="flex justify-between text-red-400 py-[2px]">
-              <span>{a.price.toFixed(2)}</span>
-              <span>{a.size.toFixed(2)}</span>
+          {asks.map(([price, amount], i) => (
+            <div key={`a-${i}`} className="px-3 py-0.5 flex justify-between">
+              <span className="text-destructive">{price}</span>
+              <span className="text-muted-foreground">{parseFloat(amount).toFixed(4)}</span>
             </div>
           ))}
 
-          <div className="border-t border-slate-700 my-2"></div>
+          <div className="px-3 py-1.5 text-center font-bold text-foreground bg-secondary/50">
+            {currentPrice.toFixed(decimals)}
+          </div>
 
-          {orderBook.bids.map((b, i) => (
-            <div key={i} className="flex justify-between text-green-400 py-[2px]">
-              <span>{b.price.toFixed(2)}</span>
-              <span>{b.size.toFixed(2)}</span>
+          {bids.map(([price, amount], i) => (
+            <div key={`b-${i}`} className="px-3 py-0.5 flex justify-between">
+              <span className="text-success">{price}</span>
+              <span className="text-muted-foreground">{parseFloat(amount).toFixed(4)}</span>
             </div>
           ))}
         </div>
       </div>
-
     </div>
   )
 }
+
+export default GoldDashboard

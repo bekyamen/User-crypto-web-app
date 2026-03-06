@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { CryptoDashboard } from '@/components/crypto-chart'
 import { ForexDashboard } from '@/components/forex-chart'
-import GoldDashboard from '@/components/gold-chart'
+import {GoldDashboard} from '@/components/gold-chart'
 import { TradeModal } from './trade-modal'
 import type { TradeResult, Asset } from '@/lib/api-two'
 import type { User } from '@/hooks/useAuth'
