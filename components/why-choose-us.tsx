@@ -16,14 +16,7 @@ export function WhyChooseUsSection() {
           </p>
         </div>
 
-        <div className="mb-12">
-          <Link href="#market">
-            <Button className="bg-gradient-to-r from-blue-500 to-orange-500 hover:from-blue-600 hover:to-orange-600 text-white font-semibold px-8 py-6">
-              View Full Market Overview
-              <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
-          </Link>
-        </div>
+        
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Left side - Benefits */}

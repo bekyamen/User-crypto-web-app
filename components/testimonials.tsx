@@ -16,7 +16,7 @@ interface Testimonial {
 const testimonials: Testimonial[] = [
   {
     id: 1,
-    quote: 'Bit trading has transformed my trading experience. The platform is fast, reliable, and the fees are unbeatable. Highly recommended!',
+    quote: 'Bitorynfx Trading has transformed my trading experience. The platform is fast, reliable, and the fees are unbeatable. Highly recommended!',
     author: 'Sarah Chen',
     role: 'Professional Trader',
     avatar: 'SC',
