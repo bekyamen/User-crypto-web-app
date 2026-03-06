@@ -154,7 +154,7 @@ export function GoldDashboard() {
             placeholder="Search metals..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-secondary border border-border rounded px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            className=" bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white mb-4"
           />
         </div>
 
@@ -165,8 +165,8 @@ export function GoldDashboard() {
               onClick={() => setSelectedPair(m.symbol)}
               className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors ${
                 selectedPair === m.symbol
-                  ? 'bg-accent/20 border-l-2 border-l-primary'
-                  : 'hover:bg-secondary border-l-2 border-l-transparent'
+                  ? 'bg-blue-500/20 border border-blue-500/50'
+                  : 'hover:bg-slate-800'
               }`}
             >
               <span className="text-muted-foreground text-xs w-5 text-right">
