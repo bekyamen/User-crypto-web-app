@@ -34,7 +34,6 @@ type MarketSymbol = 'XAU/USD' | 'XAU/EUR' | 'XAU/GBP'
 
 export default function GoldDashboard() {
   const API_KEY = 'a0438f8d465f4dc6a8c4689e9b84281c'
-
   const GOLD_SYMBOLS: MarketSymbol[] = ['XAU/USD', 'XAU/EUR', 'XAU/GBP']
 
   const [symbol, setSymbol] = useState<MarketSymbol>('XAU/USD')
@@ -65,22 +64,13 @@ export default function GoldDashboard() {
   /* ===================== INIT CHART ===================== */
   useEffect(() => {
     if (!chartRef.current) return
-
     chart.current = createChart(chartRef.current, {
-      layout: { background: { color: '#0f172a' }, textColor: '#cbd5e1' },
-      grid: { vertLines: { color: 'rgba(255,255,255,0.05)' }, horzLines: { color: 'rgba(255,255,255,0.05)' } },
+      layout: { background: { color: '#071225' }, textColor: '#b9c3d6' },
+      grid: { vertLines: { color: 'rgba(255,255,255,0.06)' }, horzLines: { color: 'rgba(255,255,255,0.06)' } },
       rightPriceScale: { borderColor: '#334155' },
       timeScale: { timeVisible: true },
     })
-
-    candleSeries.current = chart.current.addSeries(CandlestickSeries, {
-      upColor: '#22c55e',
-      downColor: '#ef4444',
-      wickUpColor: '#22c55e',
-      wickDownColor: '#ef4444',
-      borderVisible: false,
-    })
-
+    candleSeries.current = chart.current.addSeries(CandlestickSeries)
     return () => chart.current?.remove()
   }, [])
 
@@ -93,7 +83,6 @@ export default function GoldDashboard() {
         )
         const data = await res.json()
         if (!data.values) return
-
         const formatted: Candle[] = data.values
           .map((c: any) => ({
             time: Math.floor(new Date(c.datetime).getTime() / 1000) as UTCTimestamp,
@@ -103,23 +92,18 @@ export default function GoldDashboard() {
             close: +c.close,
           }))
           .reverse()
-
         candleSeries.current.setData(formatted)
-
         const last = formatted[formatted.length - 1]
         lastCandle.current = last
-
         setPrice(last.close)
         setHigh24(Math.max(...formatted.map(c => c.high)))
         setLow24(Math.min(...formatted.map(c => c.low)))
-
         const dayOpen = formatted[0].open
         setChange(((last.close - dayOpen) / dayOpen) * 100)
       } catch (err) {
         console.error('Failed to load history:', err)
       }
     }
-
     loadHistory()
   }, [symbol, tf])
 
@@ -129,12 +113,10 @@ export default function GoldDashboard() {
     const spread = 0.3
     const bids: OrderLevel[] = []
     const asks: OrderLevel[] = []
-
     for (let i = 1; i <= depth; i++) {
       bids.push({ price: +(mid - spread - i * 0.1).toFixed(2), size: +(Math.random() * 20 + 1).toFixed(2) })
       asks.push({ price: +(mid + spread + i * 0.1).toFixed(2), size: +(Math.random() * 20 + 1).toFixed(2) })
     }
-
     return { bids, asks }
   }
 
@@ -154,22 +136,14 @@ export default function GoldDashboard() {
           `https://api.twelvedata.com/price?symbol=${GOLD_SYMBOLS.join(',')}&apikey=${API_KEY}`
         )
         const data = await res.json()
-
         const updatedPrices: Record<MarketSymbol, number> = { ...marketPrices }
-
         GOLD_SYMBOLS.forEach(s => {
-          if (data[s]?.price) {
-            updatedPrices[s] = parseFloat(data[s].price)
-          }
+          if (data[s]?.price) updatedPrices[s] = parseFloat(data[s].price)
         })
-
         setMarketPrices(updatedPrices)
-
-        // Update main chart price if currently selected
         if (lastCandle.current && updatedPrices[symbol]) {
           const livePrice = updatedPrices[symbol]
           setPrice(livePrice)
-
           const updated: Candle = {
             ...lastCandle.current,
             close: livePrice,
@@ -178,7 +152,6 @@ export default function GoldDashboard() {
           }
           candleSeries.current.update(updated)
           lastCandle.current = updated
-
           setOrderBook(generateOrderBook(livePrice))
           setTrades(prev => [generateTrade(livePrice), ...prev.slice(0, 30)])
         }
@@ -186,83 +159,96 @@ export default function GoldDashboard() {
         console.error('Failed to fetch live prices', err)
       }
     }
-
     fetchLivePrices()
-    const interval = setInterval(fetchLivePrices, 5000) // update every 5s
+    const interval = setInterval(fetchLivePrices, 5000)
     return () => clearInterval(interval)
   }, [symbol])
 
-  /* ===================== UI ===================== */
+  /* ===================== RESPONSIVE UI ===================== */
   return (
-    <div className="flex h-screen bg-slate-950 text-white">
+    <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 lg:gap-6">
 
-      {/* LEFT MARKET LIST */}
-      <div className="w-64 border-r border-slate-800 p-4">
-        <h2 className="font-bold mb-4 text-yellow-400">Gold Markets</h2>
+      {/* ===== LEFT MARKETS ===== */}
+      <div className="xl:col-span-3 order-2 xl:order-1">
+        <div className="bg-slate-900/50 border border-slate-800 rounded-lg p-4 xl:sticky xl:top-24">
+          <input
+            type="text"
+            placeholder="Search pairs..."
+            value={symbol}
+            onChange={() => {}}
+            className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white mb-4"
+          />
 
-        {GOLD_SYMBOLS.map(s => (
-          <div
-            key={s}
-            onClick={() => setSymbol(s)}
-            className={`flex justify-between py-2 px-3 rounded cursor-pointer ${symbol === s ? 'bg-yellow-600' : 'hover:bg-slate-800'}`}
-          >
-            <span>{s}</span>
-            <span className="text-sm text-slate-400">{marketPrices[s]?.toFixed(2) ?? '--'}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* CENTER CHART */}
-      <div className="flex-1 flex flex-col">
-        <div className="p-4 border-b border-slate-800">
-          <div className="text-3xl font-bold text-yellow-400">
-            {symbol} {price.toFixed(2)}
-          </div>
-          <div className={`text-sm font-semibold ${change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-            {change >= 0 ? '▲' : '▼'} {change.toFixed(2)}%
-          </div>
-          <div className="text-sm text-slate-400 mt-2">
-            24h High: {high24.toFixed(2)} | 24h Low: {low24.toFixed(2)}
-          </div>
-          <div className="flex gap-2 mt-3">
-            {(['1min','5min','15min','1h','4h'] as TF[]).map(t => (
-              <button key={t} onClick={() => setTf(t)} className={`px-3 py-1 rounded ${tf === t ? 'bg-yellow-600' : 'bg-slate-800'}`}>{t}</button>
+          <div className="space-y-2 max-h-[70vh] overflow-y-auto">
+            {GOLD_SYMBOLS.map(s => (
+              <button
+                key={s}
+                onClick={() => setSymbol(s)}
+                className={`w-full px-3 py-2 rounded ${
+                  symbol === s
+                    ? 'bg-blue-500/20 border border-blue-500/50'
+                    : 'hover:bg-slate-800'
+                }`}
+              >
+                <div className="flex justify-between">
+                  <span className="text-white text-sm font-medium">{s}</span>
+                  <span className="text-slate-400 text-sm">{marketPrices[s]?.toFixed(2) ?? '--'}</span>
+                </div>
+              </button>
             ))}
           </div>
         </div>
-        <div ref={chartRef} className="flex-1" />
       </div>
 
-      {/* RIGHT SIDE */}
-      <div className="w-80 border-l border-slate-800 p-4 flex flex-col">
-        <h2 className="font-bold mb-2">Order Book</h2>
-        <div className="text-xs">
+      {/* ===== CENTER CHART ===== */}
+      <div className="xl:col-span-6 order-1 xl:order-2 bg-slate-900 border border-slate-800 rounded-lg p-4 sm:p-6">
+        <div className="mb-4">
+          <div className="text-2xl sm:text-3xl lg:text-4xl text-white font-bold">{price.toFixed(2)}</div>
+          <div className={`${change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+            {change >= 0 ? '▲' : '▼'} {change.toFixed(2)}%
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2 mb-4">
+          {(['1min','5min','15min','1h','4h'] as TF[]).map(t => (
+            <button
+              key={t}
+              onClick={() => setTf(t)}
+              className={`px-3 py-1 rounded text-sm ${
+                tf === t ? 'bg-orange-500 text-white' : 'bg-slate-800 text-slate-400'
+              }`}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+
+        <div ref={chartRef} className="h-[350px] sm:h-[450px] lg:h-[600px] w-full" />
+      </div>
+
+      {/* ===== ORDER BOOK ===== */}
+      <div className="xl:col-span-3 order-3 bg-slate-900 border border-slate-800 rounded-lg p-4">
+        <h3 className="text-white font-semibold mb-4">Order Book</h3>
+
+        <div className="max-h-[350px] sm:max-h-[450px] lg:max-h-[600px] overflow-y-auto text-xs">
           {orderBook.asks.slice().reverse().map((a, i) => (
-            <div key={i} className="flex justify-between text-red-400 py-0.5">
+            <div key={i} className="flex justify-between text-red-400 py-[2px]">
               <span>{a.price.toFixed(2)}</span>
               <span>{a.size.toFixed(2)}</span>
             </div>
           ))}
-          <div className="text-center text-yellow-400 font-bold py-1">{price.toFixed(2)}</div>
+
+          <div className="border-t border-slate-700 my-2"></div>
+
           {orderBook.bids.map((b, i) => (
-            <div key={i} className="flex justify-between text-green-400 py-0.5">
+            <div key={i} className="flex justify-between text-green-400 py-[2px]">
               <span>{b.price.toFixed(2)}</span>
               <span>{b.size.toFixed(2)}</span>
             </div>
           ))}
         </div>
-
-        <h2 className="font-bold mt-6 mb-2">Recent Trades</h2>
-        <div className="flex-1 overflow-auto text-xs">
-          {trades.map((t, i) => (
-            <div key={i} className={`flex justify-between py-1 ${t.side === 'buy' ? 'text-green-400' : 'text-red-400'}`}>
-              <span>{t.time}</span>
-              <span>{t.price.toFixed(2)}</span>
-              <span>{t.size.toFixed(2)}</span>
-            </div>
-          ))}
-        </div>
       </div>
+
     </div>
   )
 }
