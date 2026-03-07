@@ -7,7 +7,7 @@ import { WhyChooseUsSection } from '@/components/why-choose-us'
 import { TestimonialsSection } from '@/components/testimonials'
 import { SecuritySection } from '@/components/security'
 import { Footer } from '@/components/footer'
-import { SupportChatbot } from '@/components/support-chatbot'
+// import { SupportChatbot } from '@/components/support-chatbot'
 import { CryptoTable } from '@/components/crypto-table'
 import { TopGainersSection } from '@/components/top-gainers'
 import { NewListingsSection } from '@/components/new-listings'
@@ -104,7 +104,7 @@ export default function Home() {
       </main>
 
       <Footer />
-      <SupportChatbot />
+      {/* <SupportChatbot /> */}
       <FloatingChat />
 
     </div>
