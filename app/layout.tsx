@@ -1,5 +1,6 @@
 import React from "react"
 import type { Metadata } from 'next'
+import Script from "next/script"
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { Providers } from '@/components/providers'
@@ -15,12 +16,12 @@ export const metadata: Metadata = {
     'Professional trading platform for cryptocurrencies, forex, and commodities with institutional-grade tools and lightning-fast execution.',
   icons: [
     {
-      url: '/iconlogo.png',  // small square PNG, e.g., 32x32
+      url: '/iconlogo.png',
       sizes: '32x32',
       type: 'image/png',
     },
     {
-      url: '/iconlogo.png',  // optional higher res for retina
+      url: '/iconlogo.png',
       sizes: '64x64',
       type: 'image/png',
     },
@@ -31,6 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* Theme Loader */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -48,13 +50,32 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
 
       <body className="font-sans antialiased text-white">
-        {/* ✅ MOVE Providers ABOVE EVERYTHING */}
+
         <Providers>
           <HeaderWrapper />
           <main>{children}</main>
         </Providers>
 
         <Analytics />
+
+        {/* Smartsupp Live Chat */}
+        <Script id="smartsupp-chat" strategy="afterInteractive">
+          {`
+            var _smartsupp = _smartsupp || {};
+            _smartsupp.key = '4802880d6fd3fc3e78183535f42c045d9e53f7d4';
+            window.smartsupp||(function(d) {
+              var s,c,o=smartsupp=function(){ o._.push(arguments)};o._=[];
+              s=d.getElementsByTagName('script')[0];
+              c=d.createElement('script');
+              c.type='text/javascript';
+              c.charset='utf-8';
+              c.async=true;
+              c.src='https://www.smartsuppchat.com/loader.js?';
+              s.parentNode.insertBefore(c,s);
+            })(document);
+          `}
+        </Script>
+
       </body>
     </html>
   )
