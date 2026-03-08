@@ -1,161 +1,188 @@
-'use client'
-
-import { ArrowRight, Zap, TrendingUp, Shield, Diamond, Users, DollarSign, CheckCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { BitcoinOrbit } from '@/components/BitcoinOrbit';
+'use client';
+import { motion } from "framer-motion";
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { ArrowRight, BarChart3, Shield, Zap, Headphones, ChevronDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import CryptoOrbit from "@/components/CryptoOrbit";
 
-export function Hero() {
-  const stats = [
-    { icon: Users, value: '2M+', label: 'Active Traders', color: 'text-blue-400' },
-    { icon: DollarSign, value: '$50B+', label: 'Trading Volume', color: 'text-orange-400' },
-    { icon: CheckCircle, value: '99.9%', label: 'Uptime', color: 'text-green-400' },
-  ];
+const badges = [
+  { icon: Shield, label: "Low minimum deposit" },
+  { icon: Zap, label: "Instant execution" },
+  { icon: Headphones, label: "24/7 support" },
+  { icon: Shield, label: "Bank-level security" },
+];
 
+const stats = [
+  { value: "2M+", label: "Active Traders" },
+  { value: "$50B+", label: "Trading Volume" },
+  { value: "99.9%", label: "Uptime" },
+];
+
+const HeroSection = () => {
   return (
-    <section className="relative overflow-hidden">
-      {/* Background gradients */}
+    <section className="relative flex min-h-screen items-center justify-center overflow-hidden px-6 py-32">
+      {/* Ambient glow blobs */}
      
 
-      <div className="relative z-10 pt-8 pb-4 lg:pt-12">
+      <div className="container relative z-10 mx-auto grid max-w-7xl grid-cols-1 items-center gap-12 lg:grid-cols-2">
+        {/* Left Content */}
 
-  {/* Section Blue Glow */}
-  <div className="absolute inset-0 -z-10 flex justify-center">
-    <div className="w-[1000px] h-[600px] bg-blue-500/70 blur-[160px] opacity-50"></div>
-  </div>
 
-  <div className="grid lg:grid-cols-2 pt-0 gap-12 lg:gap-16 items-center">
+         <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+        >
+          {/* Trust Badge */}
+        <motion.div
+  initial={{ opacity: 0, y: -10 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ delay: 0.2 }}
+  className="mb-8 inline-flex items-center gap-2 rounded-full  bg-primary/10 px-4 py-2 text-sm text-primary shadow-[0_0_20px_hsl(var(--primary)/0.15)]"
+>
+  {/* Rotating Shield Icon */}
+  <motion.div
+    animate={{ rotate: 360 }}
+    transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
+    className="inline-flex items-center justify-center"
+  >
+    <Shield className="h-6 w-6 text-primary drop-shadow-[0_0_6px_hsl(var(--primary))]" />
+  </motion.div>
 
-    {/* Left Content */}
-    <div className="relative">
+  {/* Badge Text */}
+  Trusted by 2M+ Traders Worldwide
+</motion.div>
 
-      <div className="space-y-8 animate-fade-in">
+          {/* Heading */}
+          <h1 className="mb-6 text-5xl font-extrabold leading-tight tracking-tight md:text-6xl lg:text-7xl">
+            <span className="text-gradient-hero">Trade</span>
+            <br />
+            <span className="text-gradient-hero">Smarter,</span>
+            <br />
+            <span className="text-foreground">Not Harder</span>
+          </h1>
 
-        <div className="flex flex-col items-start space-y-6">
-          <div className="inline-flex items-center gap-2 badge-border px-4 py-2">
-            <span className="text-glow-blue text-lg">🔥</span>
-            <span className="text-glow-blue text-sm font-medium">
-              Trusted by 2M+ Traders Worldwide
-            </span>
-          </div>
+          {/* Underline accent */}
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: 96 }}
+            transition={{ delay: 0.6, duration: 0.6 }}
+            className="mb-6 h-1 rounded-full bg-primary shadow-[0_0_12px_hsl(var(--primary)/0.6)]"
+          />
 
-          <div className="space-y-4">
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-tight">
-              <span className="bg-gradient-to-r from-yellow-300 via-orange-400 to-orange-500 bg-clip-text text-transparent animate-pulse">
-                Trade
-              </span>
-              <br />
-              <span
-                className="bg-gradient-to-r from-yellow-300 via-orange-400 to-orange-500 bg-clip-text text-transparent animate-pulse"
-                style={{ animationDelay: "0.3s" }}
-              >
-                Smarter
-              </span>
-              <span className="text-white">,</span>
-              <br />
-              <span className="text-white/80 italic font-light">
-                Not Harder
-              </span>
-            </h1>
-          </div>
-        </div>
+          {/* Description */}
+          <p className="mb-8 max-w-lg text-lg leading-relaxed text-muted-foreground">
+            Professional trading platform for cryptocurrencies, forex, and commodities with{" "}
+            <span className="text-primary font-medium">institutional-grade tools</span> and{" "}
+            <span className="text-accent font-medium">lightning-fast execution</span>.
+          </p>
 
-        <div className="w-40 h-1 bg-primary" />
-
-        <p className="text-muted-foreground text-lg max-w-lg leading-relaxed">
-          Professional trading platform for cryptocurrencies, forex, and commodities with{" "}
-          <span className="text-glow-blue font-medium">
-            institutional-grade tools
-          </span>{" "}
-          and{" "}
-          <span className="text-glow-blue font-medium">
-            lightning-fast execution
-          </span>.
-        </p>
-
-        <div className="flex flex-wrap gap-4">
-          <Button
-            size="lg"
-            className="bg-gradient-to-r from-blue-500 to-orange-500 hover:from-blue-600 hover:to-orange-600 text-white font-semibold px-8 flex items-center gap-2"
-          >
-            Get Started Free
-            <ArrowRight className="w-4 h-4" />
-          </Button>
-
-          <Link href="/demo">
-            <Button
-              size="lg"
-              variant="outline"
-              className="border-border text-foreground hover:bg-secondary/50 font-semibold px-8"
-            >
-              Try Demo Account
-            </Button>
-          </Link>
-        </div>
-
-        <div className="flex flex-wrap gap-3 pt-2">
-          <div className="feature-chip">
-            <Diamond className="w-4 h-4 text-primary" />
-            Low minimum deposit
-          </div>
-
-          <div className="feature-chip">
-            <Zap className="w-4 h-4 text-primary" />
-            Instant execution
-          </div>
-
-          <div className="feature-chip">
-            <TrendingUp className="w-4 h-4 text-primary" />
-            24/7 support
-          </div>
-
-          <div className="feature-chip">
-            <Shield className="w-4 h-4 text-primary" />
-            Bank-level security
-          </div>
-        </div>
-
-      </div>
-    </div>
-
-    {/* Right - Bitcoin Visualization */}
-    <div className="flex flex-col lg:items-end gap-10">
-      <div
-        className="flex items-center justify-center lg:justify-end"
-        style={{ animationDelay: "0.3s" }}
-      >
-        <BitcoinOrbit />
-      </div>
-
-      {/* Stats Cards */}
-      <motion.div
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ staggerChildren: 0.15 }}
-      >
-        {stats.map((stat, index) => {
-          const Icon = stat.icon;
-          return (
-            <motion.div
-              key={index}
-              whileHover={{ scale: 1.05, translateY: -4 }}
-              className="flex flex-col items-start gap-3 p-6 bg-slate-900/70 border border-slate-700 shadow-lg hover:shadow-2xl transition-all duration-300"
-            >
-              <Icon className={`w-10 h-10 ${stat.color}`} />
-              <div className={`text-3xl sm:text-4xl font-bold ${stat.color}`}>
-                {stat.value}
-              </div>
-              <div className="text-slate-400 text-sm">{stat.label}</div>
-            </motion.div>
-          );
-        })}
-      </motion.div>
-    </div>
-
-  </div>
+          {/* Feature Badges with glow */}
+         <div className="mb-8 flex flex-wrap gap-3">
+  {badges.map((badge, i) => (
+    <motion.div
+      key={badge.label}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.4 + i * 0.1 }}
+      className="badge-glow glass-card flex cursor-default items-center gap-2 rounded-full px-4 py-2 text-sm text-muted-foreground"
+    >
+      <badge.icon className="h-4 w-4 text-primary drop-shadow-[0_0_6px_hsl(217_91%_60%/0.6)]" />
+      {badge.label}
+    </motion.div>
+  ))}
 </div>
+
+          {/* CTA Buttons */}
+         <div className="mb-12 flex flex-wrap gap-4">
+  {/* Primary Button */}
+  <Link href="/register">
+  <Button
+    size="lg"
+    className="px-12 py-6 text-lg bg-secondary hover:bg-secondary/90 
+               text-secondary-foreground rounded-full shadow-[0_0_30px_rgba(249,115,22,0.4),0_0_60px_rgba(249,115,22,0.15)] transition-all duration-300"
+  >
+    Get Started Free <ArrowRight className="ml-2 h-6 w-6" />
+  </Button>
+  </Link>
+
+  {/* Outline Button */}
+   <Link href="/demo">
+  <Button
+    variant="outline"
+    size="lg"
+    className="px-12 py-6 text-lg border-blue-500 text-blue-500 
+               hover:bg-blue-500/10 rounded-full transition-all duration-300"
+  >
+    <BarChart3 className="mr-2 h-6 w-6" /> Try Demo Account
+  </Button>
+   </Link>
+</div>
+
+          {/* Stats with glow */}
+        <div className="flex gap-6 justify-between">
+  {stats.map((stat, i) => (
+    <motion.div
+      key={stat.label}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.5 + i * 0.15 }}
+      className="flex-1 rounded-xl border border-transparent bg-card/60 px-10 py-8 text-center backdrop-blur-sm transition-all duration-300 stat-glow"
+      style={{
+        borderImage: "linear-gradient(90deg, #3b82f6, #a855f7) 1",
+      }}
+    >
+      <div className="text-4xl font-bold text-primary drop-shadow-[0_0_14px_hsl(217_91%_60%/0.7)]">
+        {stat.value}
+      </div>
+      <div className="text-sm text-muted-foreground mt-2">{stat.label}</div>
+    </motion.div>
+  ))}
+</div>
+        </motion.div>
+
+        {/* Right — Crypto Visual */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 1, delay: 0.3 }}
+          className="hidden items-center justify-center lg:flex"
+        >
+          <CryptoOrbit />
+        </motion.div>
+      </div>
+      
+      
+      {/* Scroll indicator */}
+      <motion.a
+  href="#next-section"
+  onClick={(e) => {
+    e.preventDefault();
+    window.scrollBy({ top: window.innerHeight, behavior: 'smooth' });
+  }}
+  initial={{ opacity: 0 }}
+  animate={{ opacity: 1 }}
+  transition={{ delay: 1.5 }}
+  className="absolute bottom-8 left-1/2 flex -translate-x-1/2 cursor-pointer flex-col items-center gap-3 pt-4"
+>
+  <span className="text-sm text-muted-foreground">
+    Scroll to explore
+  </span>
+  {/* Mouse scroll icon */}
+  <motion.div
+    animate={{ y: [0, 6, 0] }}
+    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+    className="relative flex h-10 w-6 items-start justify-center rounded-full border-2 border-primary/40 p-1 shadow-[0_0_12px_hsl(var(--primary)/0.3),0_0_24px_hsl(var(--primary)/0.1)]"
+  >
+    <motion.div
+      animate={{ y: [0, 10, 0] }}
+      transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+      className="h-2 w-2 rounded-full bg-primary shadow-[0_0_8px_hsl(var(--primary)/0.8),0_0_16px_hsl(var(--primary)/0.4)]"
+    />
+  </motion.div>
+</motion.a>
     </section>
   );
-}
+};
+
+export default HeroSection;

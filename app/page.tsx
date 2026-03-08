@@ -1,6 +1,6 @@
 import { Header } from '@/components/landing page-header'
 import { MarketTicker } from '@/components/market-ticker'
-import { Hero } from '@/components/hero'
+import  Hero  from '@/components/hero'
 import { StatsSection } from '@/components/stats'
 import { FeaturesSection } from '@/components/features'
 import { WhyChooseUsSection } from '@/components/why-choose-us'
@@ -20,7 +20,7 @@ import Link from 'next/link'
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
+    <div className="min-h-screen ">
 
       <MarketTicker />
       <Header />
@@ -39,10 +39,10 @@ export default function Home() {
 
             {/* Header */}
             <div className="mb-12 text-center flex flex-col items-center">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/30 rounded-full mb-6">
-                <span className="text-sm text-blue-400 font-medium">
-                  Live Market Data
-                </span>
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/50 border border-blue-500/30 rounded-full mb-6">
+                <span className="text-sm font-medium text-gradient-hero drop-shadow-[0_0_8px_hsl(var(--glow-blue)/0.7)] animate-pulse-glow">
+  Live Market Data
+</span>
               </div>
 
               <h2 className="text-4xl font-bold mb-4">

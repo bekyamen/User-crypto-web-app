@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
@@ -17,7 +18,7 @@
   --secondary-foreground: #ffffff;
   --muted: #64748b;
   --muted-foreground: #cbd5e1;
-  --accent: #10b981;
+  --accent: #f59e0b;
   --accent-foreground: #ffffff;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
@@ -25,7 +26,7 @@
   --input: #1e293b;
   --ring: #3b82f6;
   --chart-1: #3b82f6;
-  --chart-2: #10b981;
+  --chart-2: #f59e0b;
   --chart-3: #f59e0b;
   --chart-4: #ef4444;
   --chart-5: #8b5cf6;
@@ -322,3 +323,275 @@
 .read-the-docs {
   color: #888;
 }
+
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-gradient-slow {
+  animation: gradientShift 8s ease-in-out infinite;
+}
+
+
+
+
+
+
+@layer base {
+  :root {
+    --background: 216 56% 10%;
+    --foreground: 0 0% 95%;
+
+    --card: 216 45% 14%;
+    --card-foreground: 0 0% 95%;
+
+    --popover: 216 45% 14%;
+    --popover-foreground: 0 0% 95%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 24 95% 53%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 216 40% 18%;
+    --muted-foreground: 0 0% 70%;
+
+    --accent: 24 95% 53%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 217 91% 60% / 0.2;
+    --input: 217 91% 60% / 0.2;
+    --ring: 217 91% 60%;
+
+    --radius: 0.75rem;
+
+    --success: 160 84% 39%;
+    --warning: 38 92% 50%;
+
+    --bg-primary: 216 56% 10%;
+    --bg-secondary: 216 45% 14%;
+    --bg-tertiary: 216 40% 18%;
+
+    --glow-blue: 217 91% 60%;
+    --glow-orange: 24 95% 53%;
+
+    --sidebar-background: 216 56% 10%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 216 40% 18%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 217 91% 60% / 0.2;
+    --sidebar-ring: 217 91% 60%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color-scheme: dark;
+  }
+
+  
+  
+}
+
+@layer utilities {
+  .text-gradient-hero {
+    background: linear-gradient(135deg, hsl(24 95% 53%), hsl(217 91% 60%));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .glass-card {
+    background: hsl(216 45% 14% / 0.75);
+    border: 1px solid hsl(217 91% 60% / 0.2);
+    backdrop-filter: blur(12px);
+  }
+
+  .glow-blue {
+    box-shadow: 0 0 20px hsla(217, 39%, 52%, 0.3), 0 0 60px hsl(217 91% 60% / 0.1);
+  }
+
+  
+
+  
+  .glow-orange {
+    box-shadow: 0 0 20px hsl(24 95% 53% / 0.3), 0 0 60px hsl(24 95% 53% / 0.1);
+  }
+
+  .border-glow {
+    border: 3px solid hsla(218, 91%, 78%, 0.849);
+    box-shadow: inset 0 1px 0 hsl(0, 0%, 100%);
+  }
+}
+
+
+@layer base {
+  :root {
+    --background: 216 56% 10%;
+    --foreground: 0 0% 95%;
+
+    --card: 216 45% 14%;
+    --card-foreground: 0 0% 95%;
+
+    --popover: 216 45% 14%;
+    --popover-foreground: 0 0% 95%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 24 95% 53%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 216 40% 18%;
+    --muted-foreground: 0 0% 70%;
+
+    --accent: 24 95% 53%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 217 91% 60% / 0.2;
+    --input: 217 91% 60% / 0.2;
+    --ring: 217 91% 60%;
+
+    --radius: 0.75rem;
+
+    --success: 160 84% 39%;
+    --warning: 38 92% 50%;
+
+    --bg-primary: 216 56% 10%;
+    --bg-secondary: 216 45% 14%;
+    --bg-tertiary: 216 40% 18%;
+
+    --glow-blue: 217 91% 60%;
+    --glow-orange: 24 95% 53%;
+
+    --sidebar-background: 216 56% 10%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 216 40% 18%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 217 91% 60% / 0.2;
+    --sidebar-ring: 217 91% 60%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color-scheme: dark;
+  }
+
+  body::before {
+    content: "";
+    pointer-events: none;
+    z-index: 0;
+    background: radial-gradient(circle at 20%, hsl(217 91% 60% / 0.1), transparent 50%),
+                radial-gradient(circle at 80% 80%, hsl(24 95% 53% / 0.1), transparent 50%);
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+  }
+}
+
+@layer utilities {
+  .text-gradient-hero {
+    background: linear-gradient(135deg, hsl(24 95% 53%), hsl(217 91% 60%));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .glass-card {
+    background: hsl(216 45% 14% / 0.75);
+    border: 1px solid hsl(217 91% 60% / 0.2);
+    backdrop-filter: blur(12px);
+  }
+
+  .glow-blue {
+    box-shadow: 0 0 20px hsl(217 91% 60% / 0.3), 0 0 60px hsl(217 91% 60% / 0.1);
+  }
+
+  .glow-orange {
+    box-shadow: 0 0 20px hsl(24 95% 53% / 0.3), 0 0 60px hsl(24 95% 53% / 0.1);
+  }
+
+  .border-glow {
+    border: 1px solid hsl(217 91% 60% / 0.3);
+    box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.05);
+  }
+
+  .badge-glow {
+  box-shadow:
+    0 0 24px hsl(217 91% 60% / 0.35),
+    0 0 48px hsl(217 91% 60% / 0.15);
+}
+
+
+/* Permanent glow for buttons */
+.button-glow {
+  box-shadow:
+    0 0 30px rgba(249,115,22,0.4),
+    0 0 60px rgba(249,115,22,0.15);
+}
+  .badge-glow:hover {
+    box-shadow: 0 0 24px hsl(217 91% 60% / 0.25), 0 0 48px hsl(217 91% 60% / 0.1);
+    border-color: hsl(217 91% 60% / 0.4);
+  }
+
+  
+  /* Always-on glow for stats cards */
+
+  .stat-glow {
+  box-shadow:
+    0 0 15px hsla(217, 91%, 60%, 0.35),
+    0 0 30px hsla(217, 91%, 60%, 0.2),
+    inset 0 1px 0 hsl(0 0% 100% / 0.05);
+  transition: all 0.3s ease-in-out;
+}
+
+
+.stat-glow:hover {
+  box-shadow:
+    0 0 50px hsla(217, 91%, 60%, 0.7),
+    0 0 100px hsla(217, 91%, 60%, 0.5),
+    0 0 150px hsla(217, 91%, 60%, 0.25),
+    inset 0 1px 0 hsl(0 0% 100% / 0.05);
+  transform: scale(1.08);
+  transition: all 0.3s ease-in-out;
+      }
+
+}
+
+
+
+
