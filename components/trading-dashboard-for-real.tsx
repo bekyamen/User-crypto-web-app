@@ -27,6 +27,7 @@ export function ReallTradingDashboard({ tab }: TradingDashboardProps) {
   }, [tab])
 
   /* ================= STATE ================= */
+
   const [userTrades, setUserTrades] = useState<TradeWithSymbol[]>([])
   const [availableBalance, setAvailableBalance] = useState<number>(0)
 
@@ -66,24 +67,25 @@ export function ReallTradingDashboard({ tab }: TradingDashboardProps) {
   }, [fetchBalance])
 
   /* ================= FETCH USER TRADES ================= */
+  
   const fetchUserTrades = useCallback(async () => {
-    if (!token || !user?.id) return
+  if (!token || !user?.id) return
 
-    try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/trade-sim/user/${user.id}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/trade-sim/user/${user.id}?tradeType=real`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    )
 
-      const data = await res.json()
+    const data = await res.json()
 
-      if (data.success) {
-        setUserTrades(data.data.trades || [])
-      }
-    } catch (err) {
-      console.error('Failed to fetch trades:', err)
+    if (data.success) {
+      setUserTrades(data.data.trades || [])
     }
-  }, [token, user?.id])
+  } catch (err) {
+    console.error('Failed to fetch trades:', err)
+  }
+}, [token, user?.id])
 
   useEffect(() => {
     fetchUserTrades()

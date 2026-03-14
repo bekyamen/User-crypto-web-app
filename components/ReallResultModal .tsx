@@ -22,22 +22,20 @@ export function ReallResultModal({
 }: ResultModalProps) {
   if (!isOpen) return null
 
-  // Determine win/loss based on backend outcome
-  
+  // ✅ Determine win/loss based on backend outcome
   const isWin = result.outcome === 'WIN'
-const profitColor = isWin ? 'text-emerald-400' : 'text-red-400'
+  const profitColor = isWin ? 'text-emerald-400' : 'text-red-400'
 
-
-  // Ensure fee / profit % matches sign
+  // ✅ Ensure fee / profit % matches sign
   const displayPercent =
-  result.outcome === 'LOSE'
-    ? -(Math.abs(result.profitLossPercent ?? expectedPercent))
-    : Math.abs(result.profitLossPercent ?? expectedPercent)
+    result.outcome === 'LOSS'
+      ? -(Math.abs(result.profitLossPercent ?? expectedPercent))
+      : Math.abs(result.profitLossPercent ?? expectedPercent)
 
-const displayProfit =
-  result.outcome === 'LOSE'
-    ? -(Math.abs(result.profitLossAmount))
-    : result.profitLossAmount
+  const displayProfit =
+    result.outcome === 'LOSS'
+      ? -(Math.abs(result.profitLossAmount))
+      : result.profitLossAmount
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">

@@ -15,6 +15,9 @@ interface TradeModalProps {
   userBalance: number
   onBalanceUpdate?: (newBalance: number) => void
   onTradeComplete?: (result: TradeResult) => void
+  tradeType: 'DEMO' | 'REAL'
+  token: string
+  userId: string
 }
 
 interface ExpirationOption {
@@ -42,9 +45,11 @@ export function TradeModal({
   userBalance: initialBalance,
   onBalanceUpdate,
   onTradeComplete,
+  tradeType,
+  token,
+  userId,
 }: TradeModalProps) {
-  const { user, isAuthenticated } = useAuth()
-
+  const { isAuthenticated } = useAuth()
   const [userBalance, setUserBalance] = useState<number>(initialBalance ?? 0)
   const [amount, setAmount] = useState<number | ''>('')
   const [selected, setSelected] = useState<ExpirationOption>(EXPIRATION_OPTIONS[0])
@@ -55,14 +60,11 @@ export function TradeModal({
   const [showResultModal, setShowResultModal] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [showBalance, setShowBalance] = useState(true)
 
   // Sync with parent balance
-  useEffect(() => {
-    setUserBalance(initialBalance ?? 0)
-  }, [initialBalance])
+  useEffect(() => setUserBalance(initialBalance ?? 0), [initialBalance])
 
-  // Reset modal state on close
+  // Reset modal on close
   useEffect(() => {
     if (!isOpen) {
       setAmount('')
@@ -83,10 +85,9 @@ export function TradeModal({
     setAmount(Math.round((userBalance ?? 0) * (p / 100)))
   }
 
-  // Execute trade
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!user || !isAuthenticated || amount === '' || amount <= 0) return
+    if (!isAuthenticated || amount === '' || amount <= 0) return
     if (amount > userBalance) {
       setErrorMessage('Insufficient balance!')
       return
@@ -96,13 +97,17 @@ export function TradeModal({
     setErrorMessage(null)
 
     try {
+      // Fetch latest user mode for the trade type
+       
+
       const res = await executeTrade({
-        userId: user.id,
+        userId,
         type,
         asset,
         amount,
         expirationTime: selected.seconds,
-        isDemo: true,
+        isDemo: tradeType === 'DEMO',
+        
       })
 
       setTradeResultTemp(res)
@@ -110,15 +115,14 @@ export function TradeModal({
       setCountdownActive(true)
     } catch (err) {
       console.error(err)
+      setErrorMessage('Trade failed, please try again.')
       setShowCountdown(false)
       setCountdownActive(false)
-      setErrorMessage('Trade failed, please try again.')
     } finally {
       setIsLoading(false)
     }
   }
 
-  // Handle countdown complete
   const handleCountdownComplete = useCallback(() => {
     setCountdownActive(false)
     if (!tradeResultTemp) return
@@ -130,10 +134,8 @@ export function TradeModal({
 
     setResult(tradeResultTemp)
     onTradeComplete?.(tradeResultTemp)
-
-    // Trigger independent result modal
     setShowResultModal(true)
-  }, [tradeResultTemp, onTradeComplete, onBalanceUpdate])
+  }, [tradeResultTemp, onBalanceUpdate, onTradeComplete])
 
   if (!isOpen) return null
 
@@ -147,9 +149,7 @@ export function TradeModal({
               <h2 className="text-xl font-bold text-white">{asset.symbol}/USDT</h2>
               <div className="text-sm text-slate-400 mt-1">
                 Balance:{' '}
-                <span className="font-semibold text-emerald-400">
-                  {showBalance ? userBalance.toLocaleString() : '••••'} USDT
-                </span>
+                <span className="font-semibold text-emerald-400">{userBalance.toLocaleString()} USDT</span>
               </div>
             </div>
             {!countdownActive && (
@@ -235,15 +235,12 @@ export function TradeModal({
                 isActive={countdownActive}
                 onComplete={handleCountdownComplete}
               />
-              <div className="text-slate-400 mt-4">
-                Waiting for trade result...
-              </div>
+              <div className="text-slate-400 mt-4">Waiting for trade result...</div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Independent Result Modal */}
       {result && (
         <ResultModal
           isOpen={showResultModal}
